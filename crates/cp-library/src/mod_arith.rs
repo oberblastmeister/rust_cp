@@ -2,6 +2,8 @@ use std::fmt::{self, Display, Formatter};
 use std::ops::{Add, AddAssign, BitXor, Div, DivAssign, Mul, MulAssign, Rem, Sub, SubAssign};
 use std::str::FromStr;
 
+use crate::algebra::MulInv;
+
 /// Computes `base.pow(exponent) mod modulus` with binary exponentiation.
 pub fn bin_exp(mut base: usize, mut exponent: usize, modulus: usize) -> usize {
     assert!(modulus > 0, "modulus must be positive");
@@ -42,7 +44,7 @@ impl<const MOD: usize> ModUsize<MOD> {
         Self::new(bin_exp(self.v, exponent, MOD))
     }
 
-    pub fn inv(self) -> Self {
+    pub fn mul_inv(self) -> Self {
         assert!(MOD > 1, "modulus must be greater than one for division");
         assert!(self.v != 0, "zero has no modular inverse");
         self.pow(MOD - 2)
@@ -101,7 +103,7 @@ impl<const MOD: usize> Div for ModUsize<MOD> {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        self * rhs.inv()
+        self * rhs.mul_inv()
     }
 }
 
@@ -190,6 +192,12 @@ impl<const MOD: usize> Mul<ModUsize<MOD>> for usize {
 
     fn mul(self, rhs: ModUsize<MOD>) -> Self::Output {
         ModUsize::new(self) * rhs
+    }
+}
+
+impl<const MOD: usize> MulInv for ModUsize<MOD> {
+    fn mul_inv(self) -> Self {
+        self.mul_inv()
     }
 }
 

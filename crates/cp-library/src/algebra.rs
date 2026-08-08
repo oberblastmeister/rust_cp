@@ -1,13 +1,21 @@
 use std::{
     marker::PhantomData,
-    ops::{Add, Div, Mul, Rem, Sub},
+    ops::{Add, Div, Mul, Neg, Rem, Sub},
 };
+
+pub trait MulInv {
+    fn mul_inv(self) -> Self;
+}
 
 pub trait Monoid {
     type T;
 
     const EMPTY: Self::T;
     fn append(x: Self::T, y: Self::T) -> Self::T;
+}
+
+pub trait Group: Monoid {
+    fn inverse(x: Self::T) -> Self::T;
 }
 
 pub trait NumOps<Rhs = Self, Output = Self>:
@@ -90,6 +98,12 @@ impl<T: Num> Monoid for AddMonoid<T> {
     }
 }
 
+impl<T: Num + Neg<Output = T>> Group for AddMonoid<T> {
+    fn inverse(x: Self::T) -> Self::T {
+        -x
+    }
+}
+
 pub struct MulMonoid<T>(PhantomData<T>);
 
 impl<T: Num> Monoid for MulMonoid<T> {
@@ -98,5 +112,11 @@ impl<T: Num> Monoid for MulMonoid<T> {
 
     fn append(x: T, y: T) -> T {
         x * y
+    }
+}
+
+impl<T: Num + MulInv> Group for MulMonoid<T> {
+    fn inverse(x: Self::T) -> Self::T {
+        x.mul_inv()
     }
 }
