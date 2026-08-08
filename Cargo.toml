@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "crates/cargo-cp",
+    "crates/cp-library",
+    "solutions",
+    "fuzz",
+]
+default-members = ["solutions"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+license = "MIT OR Apache-2.0"
+version = "0.1.0"

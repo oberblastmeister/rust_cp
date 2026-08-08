@@ -1,0 +1,2 @@
+[alias]
+cp = "run --quiet -p cargo-cp --"

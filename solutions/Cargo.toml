@@ -1,0 +1,9 @@
+[package]
+name = "solutions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+cp-library = { path = "../crates/cp-library" }
