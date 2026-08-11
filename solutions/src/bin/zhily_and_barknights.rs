@@ -1,4 +1,8 @@
-use cp_library::{Cin, Cout, End, Frac, Itertools, frac::F, mod_arith};
+use cp_library::{
+    Cin, Cout, End, Frac, Itertools,
+    frac::F,
+    mod_arith::{self, FactTable},
+};
 
 const MOD: usize = 998244353;
 
@@ -15,7 +19,7 @@ fn solve(n: usize, a: Vec<usize>, b: Vec<usize>) -> musize {
         .map(|(i, j)| F(b[i]) / F(b[j]))
         .collect_vec();
     pairs.sort_unstable();
-    let fact = mod_arith::create_fact_table::<MOD>(n);
+    let fact = FactTable::new(n);
     let mut res = M(0);
     for i in 0..n {
         for j in (i + 1)..n {

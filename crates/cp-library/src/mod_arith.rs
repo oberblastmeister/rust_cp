@@ -201,12 +201,28 @@ impl<const MOD: usize> MulInv for ModUsize<MOD> {
     }
 }
 
-pub fn create_fact_table<const MOD: usize>(n: usize) -> Vec<ModUsize<MOD>> {
-    let mut res = vec![ModUsize::new(1); n + 1];
-    for i in 1..=n {
-        res[i] = res[i - 1] * ModUsize::new(i);
+pub struct FactTable<const MOD: usize>(pub Vec<ModUsize<MOD>>);
+
+impl<const MOD: usize> FactTable<MOD> {
+    pub fn new(n: usize) -> Self {
+        let mut res = vec![ModUsize::new(1); n + 1];
+        for i in 1..=n {
+            res[i] = res[i - 1] * ModUsize::new(i);
+        }
+        FactTable(res)
     }
-    res
+
+    pub fn choose(&self, n: usize, k: usize) -> ModUsize<MOD> {
+        self.0[n] / (self.0[n - k] * self.0[k])
+    }
+}
+
+impl<const MOD: usize> std::ops::Index<usize> for FactTable<MOD> {
+    type Output = ModUsize<MOD>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
 }
 
 #[cfg(test)]

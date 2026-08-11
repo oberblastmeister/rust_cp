@@ -35,7 +35,7 @@ where
     pub fn from_vec(mut values: Vec<G::T>) -> Self {
         let n = values.len();
         values.resize_with(n + 1, || G::EMPTY);
-        values.rotate_right(n);
+        values.rotate_right(1);
         values.shrink_to_fit();
         for i in 1..=n {
             values[i] = G::append(values[i - 1].clone(), values[i].clone());
@@ -43,6 +43,11 @@ where
         Self {
             data: values.into_boxed_slice(),
         }
+    }
+
+    pub fn get(&self, index: usize) -> G::T {
+        assert!(index < self.data.len(), "prefix sum index out of bounds");
+        self.data[index].clone()
     }
 
     pub fn query<R: RangeBounds<usize>>(&self, range: R) -> G::T {

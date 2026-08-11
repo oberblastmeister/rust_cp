@@ -1,19 +1,39 @@
-pub mod prefix_sum;
+pub mod cartesian_tree;
 pub mod algebra;
 pub mod dsu;
 pub mod frac;
 pub mod io;
 pub mod itertools;
 pub mod mod_arith;
+pub mod prefix_sum;
 pub mod seg_tree;
 
 pub use dsu::Dsu;
 pub use frac::{Frac, ParseFracError};
 pub use io::{Cin, Cout};
-pub use prefix_sum::PrefixSum;
 pub use itertools::{Itertools, Product, Unique, UniqueBy};
 pub use mod_arith::{ModUsize, bin_exp};
+pub use prefix_sum::PrefixSum;
 pub use seg_tree::SegTree;
+
+// Works exactly like partition_point in rust std but operates in a "virtual" array
+pub fn virtual_partition_point<F>(start: usize, end: usize, mut f: F) -> usize
+where
+    F: FnMut(usize) -> bool,
+{
+    assert!(start <= end);
+    let mut lo = start;
+    let mut hi = end;
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        if f(mid) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    lo
+}
 
 pub struct End;
 
