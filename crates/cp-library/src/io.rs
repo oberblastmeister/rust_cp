@@ -1,175 +1,184 @@
-use std::any::type_name;
-use std::fmt::{self, Display};
-use std::io::{self, BufWriter, Read, Stdout, Write};
+use std::io::{self, IoSlice, Read, Write};
 use std::str::FromStr;
 
-/// Buffered, whitespace-delimited input similar to C++'s `cin`.
-pub struct Cin {
-    input: Vec<u8>,
+const BUFFER_SIZE: usize = 8 * 1024;
+const MIN_FREE_SPACE: usize = 4 * 1024;
+
+/// Buffered, whitespace-delimited byte input.
+///
+/// A token is a non-empty byte slice delimited by ASCII whitespace.
+pub struct Reader {
+    reader: Box<dyn Read>,
+    buffer: Vec<u8>,
+    // start..end is the range containing bytes read from the input.
+    start: usize,
+    end: usize,
+    exhausted: bool,
+}
+
+impl Reader {
+    pub fn from_read(reader: impl Read + 'static) -> Self {
+        Self {
+            reader: Box::new(reader),
+            buffer: vec![0; BUFFER_SIZE],
+            start: 0,
+            end: 0,
+            exhausted: false,
+        }
+    }
+
+    fn free_space(&self) -> usize {
+        self.buffer.len() - self.end
+    }
+
+    // Invariant: this may only increase the size of the valid range.
+    fn read_more(&mut self) -> io::Result<()> {
+        if self.free_space() < MIN_FREE_SPACE {
+            self.buffer.copy_within(self.start..self.end, 0);
+            self.end -= self.start;
+            self.start = 0;
+
+            if self.free_space() < MIN_FREE_SPACE {
+                self.buffer.resize(self.buffer.len() * 2, 0);
+            }
+        }
+
+        loop {
+            match self.reader.read(&mut self.buffer[self.end..]) {
+                Ok(0) => {
+                    self.exhausted = true;
+                    return Ok(());
+                }
+                Ok(bytes_read) => {
+                    self.end += bytes_read;
+                    return Ok(());
+                }
+                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                Err(error) => return Err(error),
+            }
+        }
+    }
+
+    pub fn read_token(&mut self) -> io::Result<Option<&[u8]>> {
+        loop {
+            while self.start < self.end && self.buffer[self.start].is_ascii_whitespace() {
+                self.start += 1;
+            }
+            if self.start < self.end {
+                break;
+            }
+            if self.exhausted {
+                assert_eq!(self.start, self.end);
+                return Ok(None);
+            }
+            self.read_more()?;
+        }
+
+        // Everything from self.start..(self.start + off) is not whitespace.
+        let mut off = 1;
+        loop {
+            assert!(self.start < self.end);
+            if let Some(end_off) = self.buffer[(self.start + off)..self.end]
+                .iter()
+                .position(|byte| byte.is_ascii_whitespace())
+            {
+                off += end_off;
+                let token_start = self.start;
+                let token_end = self.start + off;
+                self.start = token_end;
+                return Ok(Some(&self.buffer[token_start..token_end]));
+            }
+
+            // The entire valid range is not whitespace.
+            off = self.end - self.start;
+            if self.exhausted {
+                let token_start = self.start;
+                let token_end = self.end;
+                self.start = token_end;
+                return Ok(Some(&self.buffer[token_start..token_end]));
+            }
+            self.read_more()?;
+        }
+    }
+}
+
+/// Buffered byte output.
+pub struct Writer {
+    writer: Box<dyn Write>,
+    buffer: Box<[u8]>,
     position: usize,
 }
 
-impl Cin {
-    /// Reads all of standard input into memory.
-    pub fn new() -> Self {
-        Self::from_reader(io::stdin())
-    }
-
-    pub fn from_reader(mut reader: impl Read) -> Self {
-        let mut input = Vec::new();
-        reader
-            .read_to_end(&mut input)
-            .expect("failed to read input");
-        Self { input, position: 0 }
-    }
-
-    /// Reads and parses the next whitespace-delimited value.
-    pub fn read<T: FromStr>(&mut self) -> T {
-        self.read_opt()
-            .unwrap_or_else(|| panic!("expected another {} in input", type_name::<T>()))
-    }
-
-    /// Reads the next value, or returns `None` at the end of input.
-    pub fn read_opt<T: FromStr>(&mut self) -> Option<T> {
-        while self
-            .input
-            .get(self.position)
-            .is_some_and(|byte| byte.is_ascii_whitespace())
-        {
-            self.position += 1;
-        }
-        if self.position == self.input.len() {
-            return None;
-        }
-
-        let start = self.position;
-        while self
-            .input
-            .get(self.position)
-            .is_some_and(|byte| !byte.is_ascii_whitespace())
-        {
-            self.position += 1;
-        }
-        let token = std::str::from_utf8(&self.input[start..self.position])
-            .expect("input was not valid UTF-8");
-        Some(
-            token
-                .parse()
-                .unwrap_or_else(|_| panic!("failed to parse `{token}` as {}", type_name::<T>())),
-        )
-    }
-
-    pub fn read_vec<T: FromStr>(&mut self, len: usize) -> Vec<T> {
-        (0..len).map(|_| self.read()).collect()
-    }
-
-    pub fn read_chars(&mut self) -> Vec<char> {
-        self.read::<String>().chars().collect()
-    }
-}
-
-impl Default for Cin {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Buffered output similar to C++'s `cout`.
-pub struct Cout<W: Write = BufWriter<Stdout>> {
-    writer: W,
-}
-
-impl Cout<BufWriter<Stdout>> {
-    pub fn new() -> Self {
-        Self::from_writer(BufWriter::new(io::stdout()))
-    }
-}
-
-impl Default for Cout<BufWriter<Stdout>> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<W: Write> Cout<W> {
-    pub fn from_writer(writer: W) -> Self {
-        Self { writer }
-    }
-
-    pub fn print(&mut self, value: impl Display) -> &mut Self {
-        write!(self.writer, "{value}").expect("failed to write output");
-        self
-    }
-
-    pub fn println(&mut self, value: impl Display) -> &mut Self {
-        writeln!(self.writer, "{value}").expect("failed to write output");
-        self
-    }
-
-    pub fn space(&mut self) -> &mut Self {
-        self.print(' ')
-    }
-
-    pub fn newline(&mut self) -> &mut Self {
-        self.print('\n')
-    }
-
-    pub fn print_iter<I>(&mut self, values: I, separator: &str) -> &mut Self
-    where
-        I: IntoIterator,
-        I::Item: Display,
-    {
-        for (index, value) in values.into_iter().enumerate() {
-            if index > 0 {
-                self.print(separator);
+fn write_all_vectored(writer: &mut dyn Write, mut slices: &mut [IoSlice<'_>]) -> io::Result<()> {
+    while !slices.is_empty() {
+        match writer.write_vectored(slices) {
+            Ok(0) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::WriteZero,
+                    "failed to write buffered output",
+                ));
             }
-            self.print(value);
+            Ok(bytes_written) => IoSlice::advance_slices(&mut slices, bytes_written),
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
+            Err(error) => return Err(error),
         }
-        self
     }
-
-    pub fn flush(&mut self) {
-        self.writer.flush().expect("failed to flush output");
-    }
-
-    pub fn into_inner(mut self) -> io::Result<W> {
-        self.writer.flush()?;
-        Ok(self.writer)
-    }
+    Ok(())
 }
 
-impl<W: Write> Write for Cout<W> {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        self.writer.write(buffer)
+impl Writer {
+    pub fn from_write(writer: impl Write + 'static) -> Self {
+        Self {
+            writer: Box::new(writer),
+            buffer: vec![0; BUFFER_SIZE].into_boxed_slice(),
+            position: 0,
+        }
+    }
+
+    fn write_buffered(&mut self, input: &[u8]) -> io::Result<()> {
+        let free_space = self.buffer.len() - self.position;
+        if input.len() <= free_space {
+            let end = self.position + input.len();
+            self.buffer[self.position..end].copy_from_slice(input);
+            self.position = end;
+            return Ok(());
+        }
+
+        let mut slices = [
+            IoSlice::new(&self.buffer[..self.position]),
+            IoSlice::new(input),
+        ];
+        write_all_vectored(&mut *self.writer, &mut slices)?;
+        self.position = 0;
+        Ok(())
     }
 
     fn flush(&mut self) -> io::Result<()> {
+        self.writer.write_all(&self.buffer[..self.position])?;
+        self.position = 0;
         self.writer.flush()
     }
 
-    fn write_fmt(&mut self, arguments: fmt::Arguments<'_>) -> io::Result<()> {
-        self.writer.write_fmt(arguments)
+    pub fn write(&mut self, input: &[u8]) -> &mut Self {
+        self.write_buffered(input)
+            .expect("failed to write buffered output");
+        self
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{Cin, Cout};
-
-    #[test]
-    fn reads_typed_tokens_vectors_and_characters() {
-        let mut cin = Cin::from_reader("3 10 -2 7 hello".as_bytes());
-        let len: usize = cin.read();
-        assert_eq!(cin.read_vec::<i32>(len), [10, -2, 7]);
-        assert_eq!(cin.read_chars(), ['h', 'e', 'l', 'l', 'o']);
-        assert_eq!(cin.read_opt::<i32>(), None);
+impl Write for Writer {
+    fn write(&mut self, input: &[u8]) -> io::Result<usize> {
+        self.write_buffered(input)?;
+        Ok(input.len())
     }
 
-    #[test]
-    fn writes_chainable_buffered_output() {
-        let mut cout = Cout::from_writer(Vec::new());
-        cout.print("answer:").space().println(42);
-        cout.print_iter([1, 2, 3], " ").newline();
-        assert_eq!(cout.into_inner().unwrap(), b"answer: 42\n1 2 3\n");
+    fn flush(&mut self) -> io::Result<()> {
+        self.flush()
+    }
+}
+
+impl Drop for Writer {
+    fn drop(&mut self) {
+        let _ = self.flush();
     }
 }

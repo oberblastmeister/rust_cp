@@ -3,6 +3,7 @@ pub mod algebra;
 pub mod dsu;
 pub mod frac;
 pub mod io;
+pub mod cio;
 pub mod itertools;
 pub mod mod_arith;
 pub mod prefix_sum;
@@ -10,7 +11,7 @@ pub mod seg_tree;
 
 pub use dsu::Dsu;
 pub use frac::{Frac, ParseFracError};
-pub use io::{Cin, Cout};
+pub use cio::{Cin, Cout};
 pub use itertools::{Itertools, Product, Unique, UniqueBy};
 pub use mod_arith::{ModUsize, bin_exp};
 pub use prefix_sum::PrefixSum;
