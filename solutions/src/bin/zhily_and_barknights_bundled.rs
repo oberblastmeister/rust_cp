@@ -1,5 +1,101 @@
 #[allow(warnings)]
 mod cp_library {
+    pub mod algebra {
+        use std::{marker::PhantomData, ops::{Add, Div, Mul, Neg, Rem, Sub}};
+        pub trait MulInv {
+            fn mul_inv(self) -> Self;
+        }
+        pub trait Monoid {
+            type T;
+            const EMPTY: Self::T;
+            fn append(x: Self::T, y: Self::T) -> Self::T;
+        }
+        pub trait Group: Monoid {
+            fn inverse(x: Self::T) -> Self::T;
+        }
+        pub trait NumOps<
+            Rhs = Self,
+            Output = Self,
+        >: Add<
+                Rhs,
+                Output = Output,
+            > + Sub<
+                Rhs,
+                Output = Output,
+            > + Mul<
+                Rhs,
+                Output = Output,
+            > + Div<Rhs, Output = Output> + Rem<Rhs, Output = Output> {}
+        impl<T, Rhs, Output> NumOps<Rhs, Output> for T
+        where
+            T: Add<Rhs, Output = Output> + Sub<Rhs, Output = Output>
+                + Mul<Rhs, Output = Output> + Div<Rhs, Output = Output>
+                + Rem<Rhs, Output = Output>,
+        {}
+        pub trait Zero: Sized {
+            const ZERO: Self;
+        }
+        pub trait One: Sized {
+            const ONE: Self;
+        }
+        macro_rules! impl_zero_one {
+            ($($ty:ty),+ $(,)?) => {
+                $(impl Zero for $ty { const ZERO : Self = 0 as Self; } impl One for $ty {
+                const ONE : Self = 1 as Self; })+
+            };
+        }
+        impl_zero_one!(
+            i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64,
+        );
+        #[cfg(test)]
+        mod tests {
+            use super::{One, Zero};
+            macro_rules! assert_zero_one {
+                ($($ty:ty),+ $(,)?) => {
+                    $(assert_eq!(<$ty as Zero >::ZERO, 0 as $ty); assert_eq!(<$ty as One
+                    >::ONE, 1 as $ty);)+
+                };
+            }
+            #[test]
+            fn primitive_numbers_have_zero_and_one() {
+                assert_zero_one!(
+                    i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32,
+                    f64,
+                );
+            }
+        }
+        pub trait Num: PartialEq + Zero + One + NumOps {}
+        impl<T> Num for T
+        where
+            T: PartialEq + Zero + One + NumOps,
+        {}
+        pub struct AddMonoid<T>(PhantomData<T>);
+        impl<T: Num> Monoid for AddMonoid<T> {
+            type T = T;
+            const EMPTY: T = T::ZERO;
+            fn append(x: T, y: T) -> T {
+                x + y
+            }
+        }
+        impl<T: Num + Neg<Output = T>> Group for AddMonoid<T> {
+            fn inverse(x: Self::T) -> Self::T {
+                -x
+            }
+        }
+        pub struct MulMonoid<T>(PhantomData<T>);
+        impl<T: Num> Monoid for MulMonoid<T> {
+            type T = T;
+            const EMPTY: T = T::ONE;
+            fn append(x: T, y: T) -> T {
+                x * y
+            }
+        }
+        impl<T: Num + MulInv> Group for MulMonoid<T> {
+            fn inverse(x: Self::T) -> Self::T {
+                x.mul_inv()
+            }
+        }
+    }
     pub mod frac {
         use std::cmp::Ordering;
         use std::fmt::{self, Display, Formatter};
@@ -325,24 +421,203 @@ mod cp_library {
         }
     }
     pub mod io {
-        use std::any::type_name;
-        use std::fmt::{self, Display};
-        use std::io::{self, BufWriter, Read, Stdout, Write};
+        use std::io::{self, IoSlice, Read, Write};
         use std::str::FromStr;
-        /// Buffered, whitespace-delimited input similar to C++'s `cin`.
-        pub struct Cin {
-            input: Vec<u8>,
+        const BUFFER_SIZE: usize = 8 * 1024;
+        const MIN_FREE_SPACE: usize = 4 * 1024;
+        /// Buffered, whitespace-delimited byte input.
+        ///
+        /// A token is a non-empty byte slice delimited by ASCII whitespace.
+        pub struct Reader {
+            reader: Box<dyn Read>,
+            buffer: Vec<u8>,
+            start: usize,
+            end: usize,
+            exhausted: bool,
+        }
+        impl Reader {
+            pub fn from_read(reader: impl Read + 'static) -> Self {
+                Self {
+                    reader: Box::new(reader),
+                    buffer: vec![0; BUFFER_SIZE],
+                    start: 0,
+                    end: 0,
+                    exhausted: false,
+                }
+            }
+            fn free_space(&self) -> usize {
+                self.buffer.len() - self.end
+            }
+            fn read_more(&mut self) -> io::Result<()> {
+                if self.free_space() < MIN_FREE_SPACE {
+                    self.buffer.copy_within(self.start..self.end, 0);
+                    self.end -= self.start;
+                    self.start = 0;
+                    if self.free_space() < MIN_FREE_SPACE {
+                        self.buffer.resize(self.buffer.len() * 2, 0);
+                    }
+                }
+                loop {
+                    match self.reader.read(&mut self.buffer[self.end..]) {
+                        Ok(0) => {
+                            self.exhausted = true;
+                            return Ok(());
+                        }
+                        Ok(bytes_read) => {
+                            self.end += bytes_read;
+                            return Ok(());
+                        }
+                        Err(error) if error.kind() == io::ErrorKind::Interrupted => {
+                            continue;
+                        }
+                        Err(error) => return Err(error),
+                    }
+                }
+            }
+            pub fn read_token(&mut self) -> io::Result<Option<&[u8]>> {
+                loop {
+                    while self.start < self.end
+                        && self.buffer[self.start].is_ascii_whitespace()
+                    {
+                        self.start += 1;
+                    }
+                    if self.start < self.end {
+                        break;
+                    }
+                    if self.exhausted {
+                        assert_eq!(self.start, self.end);
+                        return Ok(None);
+                    }
+                    self.read_more()?;
+                }
+                let mut off = 1;
+                loop {
+                    assert!(self.start < self.end);
+                    if let Some(end_off) = self
+                        .buffer[(self.start + off)..self.end]
+                        .iter()
+                        .position(|byte| byte.is_ascii_whitespace())
+                    {
+                        off += end_off;
+                        let token_start = self.start;
+                        let token_end = self.start + off;
+                        self.start = token_end;
+                        return Ok(Some(&self.buffer[token_start..token_end]));
+                    }
+                    off = self.end - self.start;
+                    if self.exhausted {
+                        let token_start = self.start;
+                        let token_end = self.end;
+                        self.start = token_end;
+                        return Ok(Some(&self.buffer[token_start..token_end]));
+                    }
+                    self.read_more()?;
+                }
+            }
+        }
+        /// Buffered byte output.
+        pub struct Writer {
+            writer: Box<dyn Write>,
+            buffer: Box<[u8]>,
             position: usize,
         }
-        impl Cin {
-            /// Reads all of standard input into memory.
-            pub fn new() -> Self {
-                Self::from_reader(io::stdin())
+        fn write_all_vectored(
+            writer: &mut dyn Write,
+            mut slices: &mut [IoSlice<'_>],
+        ) -> io::Result<()> {
+            while !slices.is_empty() {
+                match writer.write_vectored(slices) {
+                    Ok(0) => {
+                        return Err(
+                            io::Error::new(
+                                io::ErrorKind::WriteZero,
+                                "failed to write buffered output",
+                            ),
+                        );
+                    }
+                    Ok(bytes_written) => {
+                        IoSlice::advance_slices(&mut slices, bytes_written)
+                    }
+                    Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
+                    Err(error) => return Err(error),
+                }
             }
-            pub fn from_reader(mut reader: impl Read) -> Self {
-                let mut input = Vec::new();
-                reader.read_to_end(&mut input).expect("failed to read input");
-                Self { input, position: 0 }
+            Ok(())
+        }
+        impl Writer {
+            pub fn from_write(writer: impl Write + 'static) -> Self {
+                Self {
+                    writer: Box::new(writer),
+                    buffer: vec![0; BUFFER_SIZE].into_boxed_slice(),
+                    position: 0,
+                }
+            }
+            fn write_buffered(&mut self, input: &[u8]) -> io::Result<()> {
+                let free_space = self.buffer.len() - self.position;
+                if input.len() <= free_space {
+                    let end = self.position + input.len();
+                    self.buffer[self.position..end].copy_from_slice(input);
+                    self.position = end;
+                    return Ok(());
+                }
+                let mut slices = [
+                    IoSlice::new(&self.buffer[..self.position]),
+                    IoSlice::new(input),
+                ];
+                write_all_vectored(&mut *self.writer, &mut slices)?;
+                self.position = 0;
+                Ok(())
+            }
+            fn flush(&mut self) -> io::Result<()> {
+                self.writer.write_all(&self.buffer[..self.position])?;
+                self.position = 0;
+                self.writer.flush()
+            }
+            pub fn write(&mut self, input: &[u8]) -> &mut Self {
+                self.write_buffered(input).expect("failed to write buffered output");
+                self
+            }
+        }
+        impl Write for Writer {
+            fn write(&mut self, input: &[u8]) -> io::Result<usize> {
+                self.write_buffered(input)?;
+                Ok(input.len())
+            }
+            fn flush(&mut self) -> io::Result<()> {
+                self.flush()
+            }
+        }
+        impl Drop for Writer {
+            fn drop(&mut self) {
+                let _ = self.flush();
+            }
+        }
+    }
+    pub mod cio {
+        use crate::cp_library::io::{Reader, Writer};
+        use std::any::type_name;
+        use std::fmt::Display;
+        use std::io::{Read, Write};
+        use std::str::FromStr;
+        /// Typed input convenience wrapper around [`Reader`].
+        pub struct Cin {
+            reader: Reader,
+        }
+        impl Cin {
+            pub fn new() -> Self {
+                Self::with_reader(Reader::from_read(std::io::stdin()))
+            }
+            pub fn from_reader(reader: impl Read + 'static) -> Self {
+                Self::with_reader(Reader::from_read(reader))
+            }
+            pub fn with_reader(reader: Reader) -> Self {
+                Self { reader }
+            }
+            pub fn reader(&mut self) -> &mut Reader {
+                &mut self.reader
+            }
+            pub fn into_reader(self) -> Reader {
+                self.reader
             }
             /// Reads and parses the next whitespace-delimited value.
             pub fn read<T: FromStr>(&mut self) -> T {
@@ -353,35 +628,19 @@ mod cp_library {
             }
             /// Reads the next value, or returns `None` at the end of input.
             pub fn read_opt<T: FromStr>(&mut self) -> Option<T> {
-                while self
-                    .input
-                    .get(self.position)
-                    .is_some_and(|byte| byte.is_ascii_whitespace())
-                {
-                    self.position += 1;
-                }
-                if self.position == self.input.len() {
-                    return None;
-                }
-                let start = self.position;
-                while self
-                    .input
-                    .get(self.position)
-                    .is_some_and(|byte| !byte.is_ascii_whitespace())
-                {
-                    self.position += 1;
-                }
-                let token = std::str::from_utf8(&self.input[start..self.position])
-                    .expect("input was not valid UTF-8");
-                Some(
-                    token
-                        .parse()
-                        .unwrap_or_else(|_| {
-                            panic!(
-                                "failed to parse `{token}` as {}", type_name::< T > ()
-                            )
-                        }),
-                )
+                self.reader
+                    .read_token()
+                    .expect("failed to read input")
+                    .map(|token| {
+                        let token = str::from_utf8(token).unwrap();
+                        token
+                            .parse()
+                            .unwrap_or_else(|_| {
+                                panic!(
+                                    "failed to parse `{token}` as {}", type_name::< T > ()
+                                )
+                            })
+                    })
             }
             pub fn read_vec<T: FromStr>(&mut self, len: usize) -> Vec<T> {
                 (0..len).map(|_| self.read()).collect()
@@ -390,28 +649,28 @@ mod cp_library {
                 self.read::<String>().chars().collect()
             }
         }
-        impl Default for Cin {
-            fn default() -> Self {
-                Self::new()
-            }
+        /// Formatted output convenience wrapper around [`Writer`].
+        pub struct Cout {
+            writer: Writer,
         }
-        /// Buffered output similar to C++'s `cout`.
-        pub struct Cout<W: Write = BufWriter<Stdout>> {
-            writer: W,
-        }
-        impl Cout<BufWriter<Stdout>> {
+        impl Cout {
             pub fn new() -> Self {
-                Self::from_writer(BufWriter::new(io::stdout()))
+                Self::from_writer(Writer::from_write(std::io::stdout()))
             }
-        }
-        impl Default for Cout<BufWriter<Stdout>> {
-            fn default() -> Self {
-                Self::new()
+            pub fn from_write(writer: impl Write + 'static) -> Self {
+                Self::from_writer(Writer::from_write(writer))
             }
-        }
-        impl<W: Write> Cout<W> {
-            pub fn from_writer(writer: W) -> Self {
+            pub fn from_writer(writer: Writer) -> Self {
                 Self { writer }
+            }
+            pub fn writer(&mut self) -> &mut Writer {
+                &mut self.writer
+            }
+            pub fn into_writer(self) -> Writer {
+                self.writer
+            }
+            pub fn flush(&mut self) {
+                self.writer.flush().expect("Failed to flush the buffer");
             }
             pub fn print(&mut self, value: impl Display) -> &mut Self {
                 write!(self.writer, "{value}").expect("failed to write output");
@@ -420,12 +679,6 @@ mod cp_library {
             pub fn println(&mut self, value: impl Display) -> &mut Self {
                 writeln!(self.writer, "{value}").expect("failed to write output");
                 self
-            }
-            pub fn space(&mut self) -> &mut Self {
-                self.print(' ')
-            }
-            pub fn newline(&mut self) -> &mut Self {
-                self.print('\n')
             }
             pub fn print_iter<I>(&mut self, values: I, separator: &str) -> &mut Self
             where
@@ -439,43 +692,6 @@ mod cp_library {
                     self.print(value);
                 }
                 self
-            }
-            pub fn flush(&mut self) {
-                self.writer.flush().expect("failed to flush output");
-            }
-            pub fn into_inner(mut self) -> io::Result<W> {
-                self.writer.flush()?;
-                Ok(self.writer)
-            }
-        }
-        impl<W: Write> Write for Cout<W> {
-            fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-                self.writer.write(buffer)
-            }
-            fn flush(&mut self) -> io::Result<()> {
-                self.writer.flush()
-            }
-            fn write_fmt(&mut self, arguments: fmt::Arguments<'_>) -> io::Result<()> {
-                self.writer.write_fmt(arguments)
-            }
-        }
-        #[cfg(test)]
-        mod tests {
-            use super::{Cin, Cout};
-            #[test]
-            fn reads_typed_tokens_vectors_and_characters() {
-                let mut cin = Cin::from_reader("3 10 -2 7 hello".as_bytes());
-                let len: usize = cin.read();
-                assert_eq!(cin.read_vec::< i32 > (len), [10, - 2, 7]);
-                assert_eq!(cin.read_chars(), ['h', 'e', 'l', 'l', 'o']);
-                assert_eq!(cin.read_opt::< i32 > (), None);
-            }
-            #[test]
-            fn writes_chainable_buffered_output() {
-                let mut cout = Cout::from_writer(Vec::new());
-                cout.print("answer:").space().println(42);
-                cout.print_iter([1, 2, 3], " ").newline();
-                assert_eq!(cout.into_inner().unwrap(), b"answer: 42\n1 2 3\n");
             }
         }
     }
@@ -738,6 +954,7 @@ mod cp_library {
             Add, AddAssign, BitXor, Div, DivAssign, Mul, MulAssign, Rem, Sub, SubAssign,
         };
         use std::str::FromStr;
+        use crate::cp_library::algebra::MulInv;
         /// Computes `base.pow(exponent) mod modulus` with binary exponentiation.
         pub fn bin_exp(mut base: usize, mut exponent: usize, modulus: usize) -> usize {
             assert!(modulus > 0, "modulus must be positive");
@@ -772,7 +989,7 @@ mod cp_library {
             pub fn pow(self, exponent: usize) -> Self {
                 Self::new(bin_exp(self.v, exponent, MOD))
             }
-            pub fn inv(self) -> Self {
+            pub fn mul_inv(self) -> Self {
                 assert!(MOD > 1, "modulus must be greater than one for division");
                 assert!(self.v != 0, "zero has no modular inverse");
                 self.pow(MOD - 2)
@@ -819,7 +1036,7 @@ mod cp_library {
         impl<const MOD: usize> Div for ModUsize<MOD> {
             type Output = Self;
             fn div(self, rhs: Self) -> Self::Output {
-                self * rhs.inv()
+                self * rhs.mul_inv()
             }
         }
         impl<const MOD: usize> AddAssign for ModUsize<MOD> {
@@ -890,12 +1107,29 @@ mod cp_library {
                 ModUsize::new(self) * rhs
             }
         }
-        pub fn create_fact_table<const MOD: usize>(n: usize) -> Vec<ModUsize<MOD>> {
-            let mut res = vec![ModUsize::new(1); n + 1];
-            for i in 1..=n {
-                res[i] = res[i - 1] * ModUsize::new(i);
+        impl<const MOD: usize> MulInv for ModUsize<MOD> {
+            fn mul_inv(self) -> Self {
+                self.mul_inv()
             }
-            res
+        }
+        pub struct FactTable<const MOD: usize>(pub Vec<ModUsize<MOD>>);
+        impl<const MOD: usize> FactTable<MOD> {
+            pub fn new(n: usize) -> Self {
+                let mut res = vec![ModUsize::new(1); n + 1];
+                for i in 1..=n {
+                    res[i] = res[i - 1] * ModUsize::new(i);
+                }
+                FactTable(res)
+            }
+            pub fn choose(&self, n: usize, k: usize) -> ModUsize<MOD> {
+                self.0[n] / (self.0[n - k] * self.0[k])
+            }
+        }
+        impl<const MOD: usize> std::ops::Index<usize> for FactTable<MOD> {
+            type Output = ModUsize<MOD>;
+            fn index(&self, index: usize) -> &Self::Output {
+                &self.0[index]
+            }
         }
         #[cfg(test)]
         mod tests {
@@ -932,9 +1166,26 @@ mod cp_library {
         }
     }
     pub use frac::{Frac, ParseFracError};
-    pub use io::{Cin, Cout};
+    pub use cio::{Cin, Cout};
     pub use itertools::{Itertools, Product, Unique, UniqueBy};
     pub use mod_arith::{ModUsize, bin_exp};
+    pub fn virtual_partition_point<F>(start: usize, end: usize, mut f: F) -> usize
+    where
+        F: FnMut(usize) -> bool,
+    {
+        assert!(start <= end);
+        let mut lo = start;
+        let mut hi = end;
+        while lo < hi {
+            let mid = lo + (hi - lo) / 2;
+            if f(mid) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        lo
+    }
     pub struct End;
     impl<T> std::ops::Index<End> for Vec<T> {
         type Output = T;
@@ -991,14 +1242,12 @@ mod cp_library {
         }
     }
 }
-
-use cp_library::{Cin, Cout, End, Frac, Itertools, frac::F, mod_arith};
+use cp_library::{Cin, Cout, End, Frac, Itertools, frac::F, mod_arith::{self, FactTable}};
 const MOD: usize = 998244353;
 type musize = cp_library::ModUsize<MOD>;
 fn M(x: usize) -> musize {
     musize::new(x)
 }
-
 fn solve(n: usize, a: Vec<usize>, b: Vec<usize>) -> musize {
     let mut pairs = (0..n)
         .cartesian_product(0..n)
@@ -1006,7 +1255,7 @@ fn solve(n: usize, a: Vec<usize>, b: Vec<usize>) -> musize {
         .map(|(i, j)| F(b[i]) / F(b[j]))
         .collect_vec();
     pairs.sort_unstable();
-    let fact = mod_arith::create_fact_table::<MOD>(n);
+    let fact = FactTable::new(n);
     let mut res = M(0);
     for i in 0..n {
         for j in (i + 1)..n {

@@ -31,18 +31,13 @@ impl Reader {
         self.buffer.len() - self.end
     }
 
-    // Invariant: this may only increase the size of the valid range.
-    fn read_more(&mut self) -> io::Result<()> {
-        if self.free_space() < MIN_FREE_SPACE {
-            self.buffer.copy_within(self.start..self.end, 0);
-            self.end -= self.start;
-            self.start = 0;
+    fn rebase(&mut self) {
+        self.buffer.copy_within(self.start..self.end, 0);
+        self.end -= self.start;
+        self.start = 0;
+    }
 
-            if self.free_space() < MIN_FREE_SPACE {
-                self.buffer.resize(self.buffer.len() * 2, 0);
-            }
-        }
-
+    fn fill(&mut self) -> io::Result<()> {
         loop {
             match self.reader.read(&mut self.buffer[self.end..]) {
                 Ok(0) => {
@@ -56,6 +51,36 @@ impl Reader {
                 Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
                 Err(error) => return Err(error),
             }
+        }
+    }
+
+    // Invariant: this may only increase the size of the valid range.
+    fn read_more(&mut self) -> io::Result<()> {
+        if self.free_space() < MIN_FREE_SPACE {
+            self.rebase();
+
+            if self.free_space() < MIN_FREE_SPACE {
+                self.buffer.resize(self.buffer.len() * 2, 0);
+            }
+        }
+
+        self.fill()?;
+        Ok(())
+    }
+
+    pub fn skip_while<F: FnMut(u8) -> bool>(&mut self, mut f: F) -> io::Result<()> {
+        loop {
+            while self.start < self.end && f(self.buffer[self.start]) {
+                self.start += 1;
+            }
+            if self.start < self.end {
+                return Ok(());
+            }
+            if self.exhausted {
+                return Ok(());
+            }
+            self.rebase();
+            self.fill()?;
         }
     }
 

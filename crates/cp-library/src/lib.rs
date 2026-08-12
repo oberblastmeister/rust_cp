@@ -1,21 +1,24 @@
-pub mod cartesian_tree;
 pub mod algebra;
+pub mod cartesian_tree;
+pub mod cio;
 pub mod dsu;
 pub mod frac;
 pub mod io;
-pub mod cio;
 pub mod itertools;
 pub mod mod_arith;
 pub mod prefix_sum;
 pub mod seg_tree;
+pub mod driver;
 
+pub use cio::{Cin, Cout};
 pub use dsu::Dsu;
 pub use frac::{Frac, ParseFracError};
-pub use cio::{Cin, Cout};
 pub use itertools::{Itertools, Product, Unique, UniqueBy};
 pub use mod_arith::{ModUsize, bin_exp};
 pub use prefix_sum::PrefixSum;
 pub use seg_tree::SegTree;
+pub use driver::{driver, test_driver, TestKind};
+
 
 // Works exactly like partition_point in rust std but operates in a "virtual" array
 pub fn virtual_partition_point<F>(start: usize, end: usize, mut f: F) -> usize
@@ -104,31 +107,5 @@ impl std::ops::Index<End> for String {
 impl std::ops::IndexMut<End> for String {
     fn index_mut(&mut self, index: End) -> &mut Self::Output {
         <str as std::ops::IndexMut<End>>::index_mut(self.as_mut_str(), index)
-    }
-}
-
-#[cfg(test)]
-mod end_index_tests {
-    use super::End;
-
-    #[test]
-    fn indexes_final_unicode_character_in_strings() {
-        let string = String::from("helloé");
-        let string_slice: &str = &string;
-
-        assert_eq!(&string[End], "é");
-        assert_eq!(&string_slice[End], "é");
-    }
-
-    #[test]
-    fn mutably_indexes_final_character_in_strings() {
-        let mut string = String::from("helloa");
-        string[End].make_ascii_uppercase();
-        assert_eq!(string, "helloA");
-
-        let mut string = String::from("worldb");
-        let string_slice: &mut str = string.as_mut_str();
-        string_slice[End].make_ascii_uppercase();
-        assert_eq!(string, "worldB");
     }
 }

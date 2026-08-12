@@ -227,7 +227,7 @@ impl<const MOD: usize> std::ops::Index<usize> for FactTable<MOD> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ModUsize, bin_exp};
+    use super::{bin_exp, ModUsize};
 
     type Mod = ModUsize<1_000_000_007>;
 

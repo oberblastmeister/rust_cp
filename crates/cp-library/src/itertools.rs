@@ -6,8 +6,8 @@
 //! See `third-party/itertools-LICENSE-MIT` for the upstream license.
 
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::fmt::{Display, Write as _};
 use std::hash::Hash;
 use std::iter::FusedIterator;

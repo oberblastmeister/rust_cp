@@ -1,6 +1,6 @@
-use std::{collections::HashSet, iter, panic};
+use std::panic;
 
-use cp_library::{Cin, Cout, End, Itertools};
+use cp_library::{Cin, Cout, End, TestKind, driver};
 
 #[derive(Debug, PartialEq, Eq)]
 enum Item {
@@ -50,29 +50,48 @@ fn solve(s: &str) -> bool {
     true
 }
 
+fn run(_: usize, cin: &mut Cin, cout: &mut Cout) {
+    let s: String = cin.read();
+    let res = solve(&s);
+    cout.println(if res { "YES" } else { "NO" });
+}
+
 fn main() {
-    let mut cin = Cin::new();
-    let mut cout = Cout::new();
-    let t: usize = cin.read();
-    for _ in 0..t {
-        let s: String = cin.read();
-        let res = solve(&s);
-        cout.println(if res { "YES" } else { "NO" });
-    }
+    driver(run, TestKind::Many);
 }
 
 #[cfg(test)]
 mod tests {
+    use cp_library::test_driver;
+
     use super::*;
 
     #[test]
     fn smoke() {
-        assert_eq!(solve("++1"), true);
-        assert_eq!(solve("+++1--0"), false);
-        assert_eq!(solve("+0"), false);
-        assert_eq!(solve("0"), false);
-        assert_eq!(solve("++0-+1-+0"), true);
-        assert_eq!(solve("++0+-1+-0"), false);
-        assert_eq!(solve("+1-+0"), false);
+        insta::assert_snapshot!(
+            test_driver(
+                run,
+                TestKind::Many,
+                "
+            7
+            ++1
+            +++1--0
+            +0
+            0
+            ++0-+1-+0
+            ++0+-1+-0
+            +1-+0
+            "
+            ),
+            @"
+        YES
+        NO
+        NO
+        NO
+        YES
+        NO
+        NO
+        "
+        );
     }
 }
