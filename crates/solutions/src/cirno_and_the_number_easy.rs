@@ -1,6 +1,4 @@
-use std::{collections::HashSet, iter};
-
-use cp_library::{Cin, Cout, End, Itertools};
+use cp_library::prelude::*;
 
 fn to_digits(x: usize) -> Vec<usize> {
     x.to_string()
@@ -65,17 +63,16 @@ pub fn solve(a: usize, ds: &[usize]) -> usize {
     res
 }
 
+fn run(_: usize, cin: &mut Cin, cout: &mut Cout) {
+    let a: usize = cin.read();
+    let n: usize = cin.read();
+    let ds: Vec<usize> = cin.read_vec(n);
+    let res = solve(a, &ds);
+    cout.println(res);
+}
+
 pub fn main() {
-    let mut cin = Cin::new();
-    let mut cout = Cout::new();
-    let t = cin.read();
-    for _ in 0..t {
-        let a: usize = cin.read();
-        let n: usize = cin.read();
-        let ds: Vec<usize> = cin.read_vec(n);
-        let res = solve(a, &ds);
-        cout.println(res);
-    }
+    driver(run, TestKind::Many);
 }
 
 fn generate(n: usize, ds: &[usize]) -> Vec<usize> {

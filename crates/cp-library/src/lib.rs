@@ -1,6 +1,8 @@
 pub mod algebra;
+pub mod binary_search;
 pub mod cartesian_tree;
 pub mod cio;
+pub mod driver;
 pub mod dsu;
 pub mod frac;
 pub mod io;
@@ -8,35 +10,20 @@ pub mod itertools;
 pub mod mod_arith;
 pub mod prefix_sum;
 pub mod seg_tree;
-pub mod driver;
 
 pub use cio::{Cin, Cout};
+pub use driver::{TestKind, driver, test_driver};
 pub use dsu::Dsu;
 pub use frac::{Frac, ParseFracError};
-pub use itertools::{Itertools, Product, Unique, UniqueBy};
-pub use mod_arith::{ModUsize, bin_exp};
+pub use itertools::Itertools;
+pub use mod_arith::ModUsize;
 pub use prefix_sum::PrefixSum;
 pub use seg_tree::SegTree;
-pub use driver::{driver, test_driver, TestKind};
 
-
-// Works exactly like partition_point in rust std but operates in a "virtual" array
-pub fn virtual_partition_point<F>(start: usize, end: usize, mut f: F) -> usize
-where
-    F: FnMut(usize) -> bool,
-{
-    assert!(start <= end);
-    let mut lo = start;
-    let mut hi = end;
-    while lo < hi {
-        let mid = lo + (hi - lo) / 2;
-        if f(mid) {
-            lo = mid + 1;
-        } else {
-            hi = mid;
-        }
-    }
-    lo
+pub mod prelude {
+    pub use crate::{Cin, Cout, End, Itertools, TestKind, driver, test_driver};
+    pub use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, VecDeque};
+    pub use std::iter;
 }
 
 pub struct End;
