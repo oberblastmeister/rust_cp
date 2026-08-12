@@ -1,5 +1,4 @@
 use std::io::{self, IoSlice, Read, Write};
-use std::str::FromStr;
 
 const BUFFER_SIZE: usize = 8 * 1024;
 const MIN_FREE_SPACE: usize = 4 * 1024;

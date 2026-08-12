@@ -14,6 +14,8 @@ pub fn bundle(input: &Path) -> Result<String> {
     let input = input
         .canonicalize()
         .with_context(|| format!("failed to find `{}`", input.display()))?;
+    let source = fs::read_to_string(&input)
+        .with_context(|| format!("failed to read `{}`", input.display()))?;
     let mut solution = parse_and_expand(&input)?;
     retain_referenced_solution_modules(&mut solution);
     let metadata = MetadataCommand::new()
@@ -44,9 +46,12 @@ pub fn bundle(input: &Path) -> Result<String> {
         embedded.push(wrap_library(crate_name, library)?);
     }
 
-    embedded.append(&mut solution.items);
-    solution.items = embedded;
-    Ok(prettyplease::unparse(&solution))
+    if embedded.is_empty() {
+        Ok(source)
+    } else {
+        let library = quote!(#(#embedded)*).to_string();
+        Ok(format!("{library}\n{source}"))
+    }
 }
 
 fn reject_external_dependencies(
@@ -92,7 +97,7 @@ fn workspace_libraries(metadata: &Metadata) -> BTreeMap<String, PathBuf> {
         .workspace_packages()
         .iter()
         .flat_map(|package| package.targets.iter())
-        .filter(|target| target.kind.iter().any(|kind| *kind == TargetKind::Lib))
+        .filter(|target| target.kind.contains(&TargetKind::Lib))
         .map(|target| {
             (
                 target.name.replace('-', "_"),
@@ -107,6 +112,8 @@ fn parse_and_expand(path: &Path) -> Result<File> {
         fs::read_to_string(path).with_context(|| format!("failed to read `{}`", path.display()))?;
     let mut file = syn::parse_file(&source)
         .with_context(|| format!("failed to parse `{}`", path.display()))?;
+    reject_unsupported_glob_imports(&file)
+        .with_context(|| format!("failed to bundle `{}`", path.display()))?;
     let module_dir = child_module_dir(path)?;
     expand_items(&mut file.items, &module_dir, path)?;
     Ok(file)
@@ -191,11 +198,9 @@ fn path_attribute(attributes: &[Attribute]) -> Result<Option<PathBuf>> {
 
 fn child_module_dir(path: &Path) -> Result<PathBuf> {
     let parent = path.parent().context("module source has no parent")?;
-    if path.file_name().and_then(|name| name.to_str()) == Some("mod.rs") {
-        Ok(parent.to_path_buf())
-    } else if matches!(
+    if matches!(
         path.file_name().and_then(|name| name.to_str()),
-        Some("lib.rs" | "main.rs")
+        Some("lib.rs" | "main.rs" | "mod.rs")
     ) {
         Ok(parent.to_path_buf())
     } else {
@@ -227,7 +232,7 @@ impl CrateReferences {
                         .first()
                         .is_some_and(|root| root == self.crate_name)
                     {
-                        if leaf.glob || leaf.alias.is_some() && leaf.path.len() == 1 {
+                        if leaf.alias.is_some() && leaf.path.len() == 1 {
                             self.references.whole_crate = true;
                         } else if let Some(member) = leaf.path.get(1) {
                             self.references.members.insert(member.clone());
@@ -321,6 +326,41 @@ fn flatten_use_tree(tree: &UseTree, prefix: &mut Vec<String>, leaves: &mut Vec<U
             glob: true,
         }),
     }
+}
+
+fn reject_unsupported_glob_imports(file: &File) -> Result<()> {
+    struct Collector {
+        unsupported: Option<Vec<String>>,
+    }
+
+    impl<'ast> Visit<'ast> for Collector {
+        fn visit_item_use(&mut self, item: &'ast ItemUse) {
+            if self.unsupported.is_none() {
+                let mut leaves = Vec::new();
+                flatten_use_tree(&item.tree, &mut Vec::new(), &mut leaves);
+                self.unsupported = leaves
+                    .into_iter()
+                    .find(|leaf| {
+                        leaf.glob
+                            && leaf.path.last().is_none_or(|segment| {
+                                !matches!(segment.as_str(), "prelude" | "self" | "super")
+                            })
+                    })
+                    .map(|leaf| leaf.path);
+            }
+            visit::visit_item_use(self, item);
+        }
+    }
+
+    let mut collector = Collector { unsupported: None };
+    collector.visit_file(file);
+    if let Some(path) = collector.unsupported {
+        let path = path.join("::");
+        bail!(
+            "unsupported glob import `{path}::*`; only imports ending in `prelude::*` can be bundled"
+        );
+    }
+    Ok(())
 }
 
 fn token_paths(tokens: TokenStream) -> Vec<Vec<String>> {
@@ -704,11 +744,11 @@ impl CratePathRewriter {
         match tree {
             UseTree::Path(path) if path.ident == "crate" => {
                 let remainder = (*path.tree).clone();
-                path.tree = Box::new(UseTree::Path(syn::UsePath {
+                *path.tree = UseTree::Path(syn::UsePath {
                     ident: self.crate_identifier.clone(),
                     colon2_token: Default::default(),
                     tree: Box::new(remainder),
-                }));
+                });
             }
             UseTree::Path(path) => self.rewrite_use_tree(&mut path.tree),
             UseTree::Group(group) => {

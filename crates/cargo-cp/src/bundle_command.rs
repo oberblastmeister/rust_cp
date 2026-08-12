@@ -25,13 +25,18 @@ impl Bundle {
             None => default_output_path(&input)?,
         };
         let bundled = cargo_cp::bundle(&input)?;
+        let bytes = bundled.len();
         if let Some(parent) = output.parent() {
             fs::create_dir_all(parent)
                 .with_context(|| format!("failed to create `{}`", parent.display()))?;
         }
         fs::write(&output, bundled)
             .with_context(|| format!("failed to write `{}`", output.display()))?;
-        eprintln!("bundled {} -> {}", input.display(), output.display());
+        eprintln!(
+            "bundled {} -> {} ({bytes} bytes)",
+            input.display(),
+            output.display()
+        );
         Ok(())
     }
 }

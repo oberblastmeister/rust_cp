@@ -27,19 +27,6 @@ impl<W> std::ops::IndexMut<usize> for CartesianTree<W> {
     }
 }
 
-// https://codeforces.com/blog/entry/112664
-// If we assume all weights are unique, then each node of a cartesian tree can be thought of
-// as the maximum range such that the minimum of all elements within that range is the weight of this node. The range cannot be extended any further or else the weight would not be the minimum.
-// If weights are not unique anymore, then we are essentially making them unique by adding the index to the weight.
-// Therefore later indices are weighted less
-// [2, 2, 3] produces
-/*
-2 (index 0)
- \
-  2 (index 1)
-   \
-    3 (index 2)
- */
 impl<W> CartesianTree<W>
 where
     W: Ord + Clone,

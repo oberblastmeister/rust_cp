@@ -1,6 +1,6 @@
 use std::iter;
 
-use cp_library::{Cin, Cout, End, ModUsize, mod_arith::FactTable};
+use cp_library::{Cin, Cout, End, mod_arith::ModUsize, mod_arith::FactTable};
 
 const MOD: usize = 998244353;
 type musize = ModUsize<MOD>;

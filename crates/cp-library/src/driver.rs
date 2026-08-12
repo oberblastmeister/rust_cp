@@ -24,7 +24,6 @@ pub fn driver_with_io<F>(
     for t in 0..test_count {
         solve(t, &mut cin, &mut cout);
     }
-
     cout.flush();
 }
 

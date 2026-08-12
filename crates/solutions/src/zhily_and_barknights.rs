@@ -1,12 +1,12 @@
 use cp_library::{
-    Cin, Cout, End, Frac, Itertools,
+    Cin, Cout, End, frac::Frac, Itertools,
     frac::F,
     mod_arith::{self, FactTable},
 };
 
 const MOD: usize = 998244353;
 
-type musize = cp_library::ModUsize<MOD>;
+type musize = cp_library::mod_arith::ModUsize<MOD>;
 
 pub fn M(x: usize) -> musize {
     musize::new(x)

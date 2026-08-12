@@ -1,5 +1,5 @@
 use cp_library::{
-    Cin, Cout, End, Itertools, PrefixSum, algebra::AddMonoid,
+    Cin, Cout, End, Itertools, prefix_sum::PrefixSum, algebra::AddMonoid,
     binary_search::virtual_partition_point,
 };
 
