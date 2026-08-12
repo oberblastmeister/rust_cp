@@ -63,7 +63,9 @@ where
             Bound::Excluded(&end) => end,
             Bound::Unbounded => self.data.len() - 1,
         };
-
+        if start > end {
+            return G::EMPTY;
+        }
         self.query_bounds(start, end)
     }
 

@@ -1,3 +1,4 @@
+pub mod billion_players_game;
 pub mod another_problem_about_beautiful_pairs;
 pub mod chicken_jockey;
 pub mod christmas_tree_decorations;
