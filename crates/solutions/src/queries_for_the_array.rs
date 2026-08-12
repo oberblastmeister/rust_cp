@@ -10,7 +10,7 @@ enum Item {
 }
 
 // stack invariant: any number of sorted, followed by any number of unknown or unsorted
-fn solve(s: &str) -> bool {
+pub fn solve(s: &str) -> bool {
     use Item::*;
     let s = s.as_bytes();
     let mut stack = Vec::new();
@@ -50,13 +50,13 @@ fn solve(s: &str) -> bool {
     true
 }
 
-fn run(_: usize, cin: &mut Cin, cout: &mut Cout) {
+pub fn run(_: usize, cin: &mut Cin, cout: &mut Cout) {
     let s: String = cin.read();
     let res = solve(&s);
     cout.println(if res { "YES" } else { "NO" });
 }
 
-fn main() {
+pub fn main() {
     driver(run, TestKind::Many);
 }
 
@@ -67,7 +67,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn smoke() {
+    pub fn smoke() {
         insta::assert_snapshot!(
             test_driver(
                 run,

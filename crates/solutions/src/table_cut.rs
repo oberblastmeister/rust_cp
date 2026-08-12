@@ -2,7 +2,7 @@ use std::iter;
 
 use cp_library::{Cin, Cout, End};
 
-fn solve(n: usize, m: usize, a: Vec<Vec<usize>>) -> (usize, String) {
+pub fn solve(n: usize, m: usize, a: Vec<Vec<usize>>) -> (usize, String) {
     let tot = a
         .iter()
         .map(|row| row.iter().copied().sum::<usize>())
@@ -32,7 +32,7 @@ fn solve(n: usize, m: usize, a: Vec<Vec<usize>>) -> (usize, String) {
     (opt * (tot - opt), res)
 }
 
-fn main() {
+pub fn main() {
     let mut cin = Cin::new();
     let mut cout = Cout::new();
     let t = cin.read();

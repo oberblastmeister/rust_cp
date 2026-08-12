@@ -8,11 +8,11 @@ const MOD: usize = 998244353;
 
 type musize = cp_library::ModUsize<MOD>;
 
-fn M(x: usize) -> musize {
+pub fn M(x: usize) -> musize {
     musize::new(x)
 }
 
-fn solve(n: usize, a: Vec<usize>, b: Vec<usize>) -> musize {
+pub fn solve(n: usize, a: Vec<usize>, b: Vec<usize>) -> musize {
     let mut pairs = (0..n)
         .cartesian_product(0..n)
         .filter(|(i, j)| i != j)
@@ -33,7 +33,7 @@ fn solve(n: usize, a: Vec<usize>, b: Vec<usize>) -> musize {
     res / fact[n]
 }
 
-fn main() {
+pub fn main() {
     let mut cin = Cin::new();
     let mut cout = Cout::new();
     let t = cin.read();
@@ -51,7 +51,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn smoke() {
+    pub fn smoke() {
         assert_eq!(solve(5, vec![1, 14, 5, 1, 4], vec![1, 1, 1, 1, 1]), M(5));
         assert_eq!(solve(3, vec![3, 2, 5], vec![3, 2, 5]), M(665496236));
         assert_eq!(

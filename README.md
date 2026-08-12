@@ -6,8 +6,9 @@ A Rust workspace for competitive programming. It keeps reusable algorithms in a 
 
 - `crates/cp-library`: reusable data structures and algorithms.
 - `crates/cargo-cp`: the `cargo cp` workflow tool.
-- `solutions/src/bin`: one binary per problem.
-- `fuzz`: cargo-fuzz targets for randomized testing.
+- `crates/solutions`: a library with one Rust module per problem.
+- `crates/bundled`: standalone binary targets generated for submission.
+- `crates/fuzz`: cargo-fuzz targets for randomized testing.
 
 The starter library contains:
 
@@ -24,7 +25,7 @@ The workspace’s `.cargo/config.toml` defines `cp` as a Cargo alias, so no inst
 
 ```sh
 cargo cp --help
-cargo cp bundle solutions/src/bin/range_sum.rs
+cargo cp bundle crates/solutions/src/chicken_jockey.rs
 cargo cp fuzz fuzz_target_1
 ```
 
@@ -36,7 +37,7 @@ cargo install --path crates/cargo-cp
 
 ## Add and run a solution
 
-Create `solutions/src/bin/problem_name.rs` and import normal library paths:
+Create `crates/solutions/src/problem_name.rs`, declare it in `crates/solutions/src/lib.rs`, and import normal library paths:
 
 ```rust
 use cp_library::{Cin, Cout, Dsu};
@@ -67,10 +68,17 @@ let grid = (0..2)
 assert_eq!(grid, [(0, 'a'), (0, 'b'), (1, 'a'), (1, 'b')]);
 ```
 
-Run it with:
+Solutions are library modules, so their unit tests can be run directly:
 
 ```sh
-cargo run -p solutions --bin problem_name < input.txt
+cargo test -p solutions problem_name
+```
+
+Bundle a module to generate an executable binary target, then run it with:
+
+```sh
+cargo cp bundle crates/solutions/src/problem_name.rs
+cargo run -p bundled --bin problem_name < input.txt
 ```
 
 ## Run a fuzz target
@@ -82,26 +90,38 @@ rustup toolchain install nightly
 cargo install cargo-fuzz
 ```
 
-Then run a target from `fuzz/fuzz_targets` through the nightly compiler:
+Then run a target from `crates/fuzz/fuzz_targets` through the nightly compiler:
 
 ```sh
 cargo cp fuzz fuzz_target_1
 ```
 
-This wraps `cargo +nightly fuzz run <target>` and forwards the fuzzer's input and output directly to the terminal.
+Reproduce a specific failing input by passing its path:
+
+```sh
+cargo cp fuzz fuzz_target_1 crates/fuzz/artifacts/fuzz_target_1/crash-input
+```
+
+Minimize a failing input with `tmin`:
+
+```sh
+cargo cp tmin fuzz_target_1 crates/fuzz/artifacts/fuzz_target_1/crash-input
+```
+
+These commands wrap `cargo +nightly fuzz run` and `cargo +nightly fuzz tmin`, use the relocated `crates/fuzz` project, and forward input and output directly to the terminal.
 
 ## Bundle a submission
 
-Bundle to the default sibling path, `solutions/src/bin/range_sum_bundled.rs`:
+By default, bundling `crates/solutions/src/problem_name.rs` writes the standalone binary `crates/bundled/src/bin/problem_name.rs`:
 
 ```sh
-cargo cp bundle solutions/src/bin/range_sum.rs
+cargo cp bundle crates/solutions/src/problem_name.rs
 ```
 
 Override the output path with `-o` or `--output`:
 
 ```sh
-cargo cp bundle solutions/src/bin/range_sum.rs -o submission.rs
+cargo cp bundle crates/solutions/src/problem_name.rs -o submission.rs
 rustc --edition=2024 submission.rs
 ```
 

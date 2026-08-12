@@ -31,16 +31,15 @@ fn rejects_referenced_crates_io_dependencies() {
 
 #[test]
 fn embeds_a_referenced_workspace_library_and_compiles() {
-    let solution = manifest_dir().join("../../solutions/src/bin/range_sum.rs");
+    let solution = manifest_dir().join("../solutions/src/chicken_jockey.rs");
     let source = bundle(&solution).unwrap();
     assert!(source.contains("#[allow(warnings)]\nmod cp_library {"));
-    assert!(source.contains("mod fenwick {"));
-    assert!(source.contains("mod io {"));
-    assert!(source.contains("pub struct Fenwick"));
+    assert!(source.contains("mod cio {"));
+    assert!(source.contains("pub struct Cin"));
     assert!(!source.contains("mod dsu {"));
     assert!(!source.contains("mod itertools {"));
     assert!(!source.contains("mod kruskal {"));
-    assert!(!source.contains("mod segment_tree {"));
+    assert!(!source.contains("mod seg_tree {"));
 
     let directory = tempfile::tempdir().unwrap();
     let submission = directory.path().join("submission.rs");
@@ -63,13 +62,13 @@ fn follows_transitive_dependencies_between_library_modules() {
     let solution = manifest_dir().join("tests/fixtures/source/kruskal.rs");
     let source = bundle(&solution).unwrap();
 
-    assert!(source.contains("mod kruskal {"));
-    assert!(source.contains("mod dsu {"));
-    assert!(source.contains("use crate::cp_library::Dsu;"));
-    assert!(!source.contains("mod fenwick {"));
-    assert!(!source.contains("mod io {"));
+    assert!(source.contains("mod prefix_sum {"));
+    assert!(source.contains("mod algebra {"));
+    assert!(source.contains("use crate::cp_library::algebra::Group;"));
+    assert!(!source.contains("mod cio {"));
+    assert!(!source.contains("mod dsu {"));
     assert!(!source.contains("mod itertools {"));
-    assert!(!source.contains("mod segment_tree {"));
+    assert!(!source.contains("mod seg_tree {"));
 
     let directory = tempfile::tempdir().unwrap();
     let submission = directory.path().join("submission.rs");

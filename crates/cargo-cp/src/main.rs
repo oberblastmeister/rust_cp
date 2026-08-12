@@ -1,5 +1,6 @@
 mod bundle_command;
 mod fuzz;
+mod tmin;
 
 use anyhow::Result;
 use argh::{EarlyExit, FromArgs};
@@ -7,6 +8,7 @@ use bundle_command::Bundle;
 use fuzz::Fuzz;
 use std::env;
 use std::process;
+use tmin::Tmin;
 
 /// Competitive programming helpers.
 #[derive(Debug, FromArgs)]
@@ -20,6 +22,7 @@ struct Cli {
 enum Command {
     Bundle(Bundle),
     Fuzz(Fuzz),
+    Tmin(Tmin),
 }
 
 fn main() -> Result<()> {
@@ -28,6 +31,7 @@ fn main() -> Result<()> {
     match cli.command {
         Command::Bundle(command) => command.run(),
         Command::Fuzz(command) => command.run(),
+        Command::Tmin(command) => command.run(),
     }
 }
 
@@ -109,5 +113,36 @@ mod tests {
         };
 
         assert_eq!(command.target, "fuzz_target_1");
+        assert_eq!(command.input, None);
+    }
+
+    #[test]
+    fn parses_failing_fuzz_input() {
+        let args = ["fuzz", "parser", "crates/fuzz/artifacts/parser/crash"].map(String::from);
+        let cli = parse_args(&args).unwrap();
+        let Command::Fuzz(command) = cli.command else {
+            panic!("expected fuzz command");
+        };
+
+        assert_eq!(command.target, "parser");
+        assert_eq!(
+            command.input,
+            Some(PathBuf::from("crates/fuzz/artifacts/parser/crash"))
+        );
+    }
+
+    #[test]
+    fn parses_tmin_arguments() {
+        let args = ["tmin", "parser", "crates/fuzz/artifacts/parser/crash"].map(String::from);
+        let cli = parse_args(&args).unwrap();
+        let Command::Tmin(command) = cli.command else {
+            panic!("expected tmin command");
+        };
+
+        assert_eq!(command.target, "parser");
+        assert_eq!(
+            command.input,
+            PathBuf::from("crates/fuzz/artifacts/parser/crash")
+        );
     }
 }

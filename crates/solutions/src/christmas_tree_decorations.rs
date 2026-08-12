@@ -4,11 +4,11 @@ use cp_library::{Cin, Cout, End, ModUsize, mod_arith::FactTable};
 
 const MOD: usize = 998244353;
 type musize = ModUsize<MOD>;
-fn M(x: usize) -> musize {
+pub fn M(x: usize) -> musize {
     musize::new(x)
 }
 
-fn solve(n: usize, a: Vec<usize>) -> musize {
+pub fn solve(n: usize, a: Vec<usize>) -> musize {
     let &largest = a[1..].iter().max().unwrap();
     let necessary = a[1..]
         .iter()
@@ -32,7 +32,7 @@ fn solve(n: usize, a: Vec<usize>) -> musize {
     res
 }
 
-fn main() {
+pub fn main() {
     let mut cin = Cin::new();
     let mut cout = Cout::new();
     let t: usize = cin.read();
@@ -49,7 +49,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn smoke() {
+    pub fn smoke() {
         assert_eq!(solve(3, vec![1, 2, 1, 0]), M(2));
         assert_eq!(solve(3, vec![1, 0, 2, 0]), M(0));
         assert_eq!(solve(1, vec![2, 5]), M(1));

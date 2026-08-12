@@ -9,7 +9,7 @@ struct Info {
 }
 
 impl Info {
-    fn new(i: usize, heights: &[usize]) -> Info {
+    pub fn new(i: usize, heights: &[usize]) -> Info {
         let mut heights = heights.to_vec();
         for j in (0..i).rev() {
             heights[j] = heights[j].max(heights[j + 1]);
@@ -25,7 +25,7 @@ impl Info {
     }
 }
 
-fn solve(grid_height: usize, heights: Vec<usize>) -> usize {
+pub fn solve(grid_height: usize, heights: Vec<usize>) -> usize {
     if heights.len() == 1 {
         return grid_height - heights[0];
     }
@@ -50,7 +50,7 @@ fn solve(grid_height: usize, heights: Vec<usize>) -> usize {
     n * grid_height - res
 }
 
-fn main() {
+pub fn main() {
     let mut cin = Cin::new();
     let mut cout = Cout::new();
     let t: usize = cin.read();
@@ -68,7 +68,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn smoke() {
+    pub fn smoke() {
         assert_eq!(solve(4, vec![1, 3, 1, 2, 3, 1, 1]), 14);
         assert_eq!(solve(10, vec![7, 5, 1, 3, 2, 5, 6, 8]), 43);
         assert_eq!(solve(1, vec![1]), 0);

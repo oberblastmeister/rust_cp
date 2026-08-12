@@ -1,7 +1,7 @@
 use cp_library::{Cin, Cout, End};
 
 // finding all pairs of two
-fn solve(h: Vec<usize>) -> usize {
+pub fn solve(h: Vec<usize>) -> usize {
     let n = h.len();
     let mut dp = vec![usize::MAX; n];
     dp[0] = h[0];
@@ -12,7 +12,7 @@ fn solve(h: Vec<usize>) -> usize {
     dp[End]
 }
 
-fn main() {
+pub fn main() {
     let mut cin = Cin::new();
     let mut cout = Cout::new();
     let t = cin.read();
@@ -29,7 +29,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn smoke() {
+    pub fn smoke() {
         assert_eq!(solve(vec![3, 1, 4, 1, 2]), 7);
         assert_eq!(solve(vec![1, 1, 1, 1]), 1);
         assert_eq!(solve(vec![1, 2, 1, 3, 5, 2]), 7);

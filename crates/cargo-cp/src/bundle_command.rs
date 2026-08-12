@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use argh::FromArgs;
-use std::ffi::OsString;
+use cargo_metadata::MetadataCommand;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -12,7 +12,7 @@ pub(crate) struct Bundle {
     #[argh(positional, arg_name = "FILE")]
     pub(crate) input: PathBuf,
 
-    /// output file (default: <FILE>_bundled.rs)
+    /// output file (default: crates/bundled/src/bin/<FILE>)
     #[argh(option, short = 'o', arg_name = "FILE")]
     pub(crate) output: Option<PathBuf>,
 }
@@ -20,8 +20,15 @@ pub(crate) struct Bundle {
 impl Bundle {
     pub(crate) fn run(self) -> Result<()> {
         let Self { input, output } = self;
-        let output = output.unwrap_or_else(|| default_output_path(&input));
+        let output = match output {
+            Some(output) => output,
+            None => default_output_path(&input)?,
+        };
         let bundled = cargo_cp::bundle(&input)?;
+        if let Some(parent) = output.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create `{}`", parent.display()))?;
+        }
         fs::write(&output, bundled)
             .with_context(|| format!("failed to write `{}`", output.display()))?;
         eprintln!("bundled {} -> {}", input.display(), output.display());
@@ -29,11 +36,20 @@ impl Bundle {
     }
 }
 
-fn default_output_path(input: &Path) -> PathBuf {
-    let stem = input.file_stem().unwrap_or(input.as_os_str());
-    let mut filename = OsString::from(stem);
-    filename.push("_bundled.rs");
-    input.with_file_name(filename)
+fn default_output_path(input: &Path) -> Result<PathBuf> {
+    let filename = input
+        .file_name()
+        .with_context(|| format!("input `{}` has no file name", input.display()))?;
+    let metadata = MetadataCommand::new()
+        .current_dir(input.parent().unwrap_or_else(|| Path::new(".")))
+        .no_deps()
+        .exec()
+        .context("failed to run `cargo metadata`; is the solution inside a Cargo workspace?")?;
+    Ok(metadata
+        .workspace_root
+        .join("crates/bundled/src/bin")
+        .into_std_path_buf()
+        .join(filename))
 }
 
 #[cfg(test)]
@@ -42,10 +58,17 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn appends_bundled_to_the_file_stem() {
+    fn places_output_in_the_bundled_crate() {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let input = manifest_dir.join("../solutions/src/chicken_jockey.rs");
+        let bundled_dir = manifest_dir
+            .join("../bundled/src/bin")
+            .canonicalize()
+            .unwrap();
+
         assert_eq!(
-            default_output_path(&PathBuf::from("solutions/example.rs")),
-            PathBuf::from("solutions/example_bundled.rs")
+            default_output_path(&input).unwrap(),
+            bundled_dir.join("chicken_jockey.rs")
         );
     }
 }

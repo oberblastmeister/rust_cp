@@ -10,7 +10,8 @@ cargo-fuzz = true
 [dependencies]
 arbitrary = { version = "1.4.2", features = ["derive"] }
 libfuzzer-sys = "0.4"
-cp-library = { path = "../crates/cp-library" }
+cp-library = { path = "../cp-library" }
+solutions = { path = "../solutions" }
 
 [[bin]]
 name = "smoke"

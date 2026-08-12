@@ -77,6 +77,4 @@ use std::iter;
 //     }
 // }
 
-fn main() {
-    
-}
+pub fn main() {}

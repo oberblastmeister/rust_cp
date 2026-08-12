@@ -16,7 +16,7 @@ fn from_digits(ds: &[usize]) -> usize {
     ds.into_iter().copied().fold(0, |acc, d| acc * 10 + d)
 }
 
-fn solve(a: usize, ds: &[usize]) -> usize {
+pub fn solve(a: usize, ds: &[usize]) -> usize {
     assert!(ds.is_sorted());
     assert!(ds.iter().copied().all(|d| d <= 9));
     let ds_set: HashSet<usize> = ds.iter().copied().collect();
@@ -65,7 +65,7 @@ fn solve(a: usize, ds: &[usize]) -> usize {
     res
 }
 
-fn main() {
+pub fn main() {
     let mut cin = Cin::new();
     let mut cout = Cout::new();
     let t = cin.read();
@@ -78,8 +78,28 @@ fn main() {
     }
 }
 
+fn generate(n: usize, ds: &[usize]) -> Vec<usize> {
+    if n == 0 {
+        return vec![0];
+    }
+    let mut res: Vec<usize> = Vec::new();
+    for d in ds {
+        res.extend(generate(n - 1, ds).into_iter().map(|it| it * 10 + d))
+    }
+    res
+}
+
+pub fn brute(a: usize, ds: &[usize]) -> usize {
+    let ads = to_digits(a);
+    let mut gens = vec![];
+    for n in 1..=(ads.len() + 1) {
+        gens.extend(generate(n, &ds));
+    }
+    gens.iter().copied().map(|it| a.abs_diff(it)).min().unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
-    fn smoke() {}
+    pub fn smoke() {}
 }

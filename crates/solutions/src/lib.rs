@@ -1,0 +1,10 @@
+pub mod another_problem_about_beautiful_pairs;
+pub mod chicken_jockey;
+pub mod christmas_tree_decorations;
+pub mod cirno_and_the_number_easy;
+pub mod queries_for_the_array;
+pub mod sorting_by_multiplication;
+pub mod table_cut;
+pub mod two_digit_strings;
+pub mod wheres_my_water;
+pub mod zhily_and_barknights;

@@ -1,8 +1,8 @@
-use std::{collections::HashSet};
+use std::collections::HashSet;
 
 use cp_library::{Cin, Cout, End};
 
-fn solve(a: Vec<usize>) -> usize {
+pub fn solve(a: Vec<usize>) -> usize {
     dbg!(&a);
     let n = a.len();
     let mut res = 0;
@@ -36,7 +36,7 @@ fn solve(a: Vec<usize>) -> usize {
     res
 }
 
-fn main() {
+pub fn main() {
     let mut cin = Cin::new();
     let mut cout = Cout::new();
     let t = cin.read();

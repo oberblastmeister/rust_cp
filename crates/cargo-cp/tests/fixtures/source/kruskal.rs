@@ -1,6 +1,6 @@
-use cp_library::minimum_spanning_forest;
+use cp_library::{PrefixSum, algebra::AddMonoid};
 
 fn main() {
-    let mut edges = [(0, 1, 4), (1, 2, 2), (0, 2, 3)];
-    assert_eq!(minimum_spanning_forest(3, &mut edges), 5);
+    let sums = PrefixSum::<AddMonoid<i64>>::from_iter([2, 3, 5]);
+    assert_eq!(sums.query(1..3), 8);
 }
