@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "crates/bundled",
     "crates/cargo-cp",
     "crates/cp-library",
     "crates/fuzz",
