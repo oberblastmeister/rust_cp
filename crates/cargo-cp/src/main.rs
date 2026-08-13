@@ -1,11 +1,13 @@
 mod bundle_command;
 mod fuzz;
+mod new;
 mod tmin;
 
 use anyhow::Result;
 use argh::{EarlyExit, FromArgs};
 use bundle_command::Bundle;
 use fuzz::Fuzz;
+use new::New;
 use std::env;
 use std::process;
 use tmin::Tmin;
@@ -22,6 +24,7 @@ struct Cli {
 enum Command {
     Bundle(Bundle),
     Fuzz(Fuzz),
+    New(New),
     Tmin(Tmin),
 }
 
@@ -31,6 +34,7 @@ fn main() -> Result<()> {
     match cli.command {
         Command::Bundle(command) => command.run(),
         Command::Fuzz(command) => command.run(),
+        Command::New(command) => command.run(),
         Command::Tmin(command) => command.run(),
     }
 }
@@ -129,6 +133,17 @@ mod tests {
             command.input,
             Some(PathBuf::from("crates/fuzz/artifacts/parser/crash"))
         );
+    }
+
+    #[test]
+    fn parses_new_file() {
+        let args = ["new", "round_1000_a"].map(String::from);
+        let cli = parse_args(&args).unwrap();
+        let Command::New(command) = cli.command else {
+            panic!("expected new command");
+        };
+
+        assert_eq!(command.file, "round_1000_a");
     }
 
     #[test]
