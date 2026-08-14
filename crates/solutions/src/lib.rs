@@ -3,6 +3,7 @@ pub mod billion_players_game;
 pub mod chicken_jockey;
 pub mod christmas_tree_decorations;
 pub mod cirno_and_the_number_easy;
+pub mod good_schedule;
 pub mod one_night_at_freddys;
 pub mod permutation_cuts;
 pub mod queries_for_the_array;
