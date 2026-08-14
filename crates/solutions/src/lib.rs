@@ -10,3 +10,5 @@ pub mod two_digit_strings;
 pub mod wheres_my_water;
 pub mod zhily_and_barknights;
 pub mod one_night_at_freddys;
+pub mod permutation_cuts;
+pub mod good_schedule;
