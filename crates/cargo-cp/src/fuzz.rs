@@ -32,10 +32,7 @@ impl Fuzz {
             )?;
 
         if !status.success() {
-            bail!(
-                "`cargo +nightly fuzz run {}` failed with {status}",
-                self.target
-            );
+            bail!("`cargo +nightly fuzz run {}` failed with {status}", self.target);
         }
 
         Ok(())
@@ -48,23 +45,16 @@ fn fuzz_directory(current_dir: &Path) -> Result<PathBuf> {
         .no_deps()
         .exec()
         .context("failed to run `cargo metadata`; are you inside the workspace?")?;
-    Ok(metadata
-        .workspace_root
-        .join("crates/fuzz")
-        .into_std_path_buf())
+    Ok(metadata.workspace_root.join("crates/fuzz").into_std_path_buf())
 }
 
 fn resolve_input(input: PathBuf) -> Result<PathBuf> {
     let input = if input.is_absolute() {
         input
     } else {
-        env::current_dir()
-            .context("failed to determine the current directory")?
-            .join(input)
+        env::current_dir().context("failed to determine the current directory")?.join(input)
     };
-    input
-        .canonicalize()
-        .with_context(|| format!("failed to find fuzz input `{}`", input.display()))
+    input.canonicalize().with_context(|| format!("failed to find fuzz input `{}`", input.display()))
 }
 
 fn cargo_fuzz_command(target: &str, input: Option<&Path>, fuzz_dir: &Path) -> Command {
@@ -73,10 +63,7 @@ fn cargo_fuzz_command(target: &str, input: Option<&Path>, fuzz_dir: &Path) -> Co
     if let Some(input) = input {
         command.arg(input);
     }
-    command
-        .arg("--fuzz-dir")
-        .arg(fuzz_dir)
-        .current_dir(fuzz_dir);
+    command.arg("--fuzz-dir").arg(fuzz_dir).current_dir(fuzz_dir);
     command
 }
 
@@ -131,10 +118,7 @@ mod tests {
     fn finds_the_fuzz_crate_in_the_workspace() {
         assert_eq!(
             fuzz_directory(Path::new(env!("CARGO_MANIFEST_DIR"))).unwrap(),
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../fuzz")
-                .canonicalize()
-                .unwrap()
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../fuzz").canonicalize().unwrap()
         );
     }
 }

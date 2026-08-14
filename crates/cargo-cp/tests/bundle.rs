@@ -19,9 +19,7 @@ fn preserves_the_solution_source_exactly() {
 fn rejects_referenced_crates_io_dependencies() {
     let error = bundle(&manifest_dir().join("tests/fixtures/source/external.rs")).unwrap_err();
     assert!(
-        error
-            .to_string()
-            .contains("cannot bundle external dependency `anyhow`"),
+        error.to_string().contains("cannot bundle external dependency `anyhow`"),
         "unexpected error: {error:#}"
     );
 }
@@ -49,11 +47,7 @@ fn embeds_a_referenced_workspace_library_and_compiles() {
         .arg(&submission)
         .output()
         .unwrap();
-    assert!(
-        result.status.success(),
-        "rustc failed:\n{}",
-        String::from_utf8_lossy(&result.stderr)
-    );
+    assert!(result.status.success(), "rustc failed:\n{}", String::from_utf8_lossy(&result.stderr));
 }
 
 #[test]
@@ -79,11 +73,7 @@ fn prelude_glob_only_bundles_prelude_dependencies() {
         .arg(&submission)
         .output()
         .unwrap();
-    assert!(
-        result.status.success(),
-        "rustc failed:\n{}",
-        String::from_utf8_lossy(&result.stderr)
-    );
+    assert!(result.status.success(), "rustc failed:\n{}", String::from_utf8_lossy(&result.stderr));
 }
 
 #[test]
@@ -123,9 +113,5 @@ fn follows_transitive_dependencies_between_library_modules() {
         .arg(&submission)
         .output()
         .unwrap();
-    assert!(
-        result.status.success(),
-        "rustc failed:\n{}",
-        String::from_utf8_lossy(&result.stderr)
-    );
+    assert!(result.status.success(), "rustc failed:\n{}", String::from_utf8_lossy(&result.stderr));
 }

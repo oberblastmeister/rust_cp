@@ -11,9 +11,7 @@ where
     M::T: Clone,
 {
     fn clone(&self) -> Self {
-        Self {
-            data: self.data.clone(),
-        }
+        Self { data: self.data.clone() }
     }
 }
 
@@ -31,9 +29,7 @@ where
     M::T: Clone,
 {
     pub fn new(n: usize) -> Self {
-        Self {
-            data: vec![M::EMPTY; 2 * n].into_boxed_slice(),
-        }
+        Self { data: vec![M::EMPTY; 2 * n].into_boxed_slice() }
     }
 
     pub fn from_vec(mut values: Vec<M::T>) -> Self {
@@ -42,9 +38,7 @@ where
         values.rotate_right(n);
         values.shrink_to_fit();
 
-        let mut tree = Self {
-            data: values.into_boxed_slice(),
-        };
+        let mut tree = Self { data: values.into_boxed_slice() };
         tree.build();
         tree
     }
@@ -83,9 +77,9 @@ where
     pub fn query<R: RangeBounds<usize>>(&self, range: R) -> M::T {
         let start = match range.start_bound() {
             Bound::Included(&start) => start,
-            Bound::Excluded(&start) => start
-                .checked_add(1)
-                .expect("segment tree range start overflow"),
+            Bound::Excluded(&start) => {
+                start.checked_add(1).expect("segment tree range start overflow")
+            }
             Bound::Unbounded => 0,
         };
         let end = match range.end_bound() {

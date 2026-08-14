@@ -6,10 +6,7 @@ pub struct Dsu {
 
 impl Dsu {
     pub fn new(n: usize) -> Self {
-        Self {
-            parent: (0..n).collect(),
-            size: vec![1; n].into_boxed_slice(),
-        }
+        Self { parent: (0..n).collect(), size: vec![1; n].into_boxed_slice() }
     }
 
     pub fn find(&mut self, u: usize) -> usize {

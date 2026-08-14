@@ -56,10 +56,7 @@ pub struct IntoIter<T> {
 impl<T> MultiSet<T> {
     /// Makes a new, empty multiset.
     pub const fn new() -> Self {
-        Self {
-            map: BTreeMap::new(),
-            len: 0,
-        }
+        Self { map: BTreeMap::new(), len: 0 }
     }
 
     /// Returns the number of values, including duplicate occurrences.
@@ -74,10 +71,7 @@ impl<T> MultiSet<T> {
 
     /// Gets an iterator that visits every occurrence in ascending order.
     pub fn iter(&self) -> Iter<'_, T> {
-        Iter {
-            inner: self.map.iter().flat_map(entry_iter::<T>),
-            remaining: self.len,
-        }
+        Iter { inner: self.map.iter().flat_map(entry_iter::<T>), remaining: self.len }
     }
 
     /// Clears the multiset, removing all values.
@@ -105,11 +99,8 @@ impl<T: Ord> MultiSet<T> {
 
     /// Returns `true` if the multisets have no value in common.
     pub fn is_disjoint(&self, other: &Self) -> bool {
-        let (small, large) = if self.map.len() <= other.map.len() {
-            (self, other)
-        } else {
-            (other, self)
-        };
+        let (small, large) =
+            if self.map.len() <= other.map.len() { (self, other) } else { (other, self) };
         small.map.keys().all(|value| !large.map.contains_key(value))
     }
 
@@ -143,9 +134,7 @@ impl<T: Ord> MultiSet<T> {
         T: Borrow<Q>,
         Q: Ord + ?Sized,
     {
-        self.map
-            .get(value)
-            .map_or(0, |duplicates| duplicates.len() + 1)
+        self.map.get(value).map_or(0, |duplicates| duplicates.len() + 1)
     }
 
     /// Returns a reference to an equal value, if present.
@@ -366,10 +355,7 @@ impl<T> Default for MultiSet<T> {
 
 impl<T: Clone> Clone for MultiSet<T> {
     fn clone(&self) -> Self {
-        Self {
-            map: self.map.clone(),
-            len: self.len,
-        }
+        Self { map: self.map.clone(), len: self.len }
     }
 
     fn clone_from(&mut self, source: &Self) {
@@ -460,8 +446,6 @@ impl<T> IntoIterator for MultiSet<T> {
             values.push(value);
             values.extend(duplicates);
         }
-        IntoIter {
-            inner: values.into_iter(),
-        }
+        IntoIter { inner: values.into_iter() }
     }
 }

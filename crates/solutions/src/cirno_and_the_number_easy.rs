@@ -1,11 +1,7 @@
 use cp_library::prelude::*;
 
 fn to_digits(x: usize) -> Vec<usize> {
-    x.to_string()
-        .as_bytes()
-        .into_iter()
-        .map(|b| (b - b'0') as usize)
-        .collect()
+    x.to_string().as_bytes().into_iter().map(|b| (b - b'0') as usize).collect()
 }
 
 fn from_digits(ds: &[usize]) -> usize {
@@ -28,11 +24,7 @@ pub fn solve(a: usize, ds: &[usize]) -> usize {
         add(&sim)
     }
     {
-        let mut sim = vec![if ds[0] == 0 && ds.len() > 1 {
-            ds[1]
-        } else {
-            ds[0]
-        }];
+        let mut sim = vec![if ds[0] == 0 && ds.len() > 1 { ds[1] } else { ds[0] }];
         sim.extend(iter::repeat_n(ds[0], ads.len()));
         add(&sim);
     }

@@ -32,11 +32,7 @@ impl Bundle {
         }
         fs::write(&output, bundled)
             .with_context(|| format!("failed to write `{}`", output.display()))?;
-        eprintln!(
-            "bundled {} -> {} ({bytes} bytes)",
-            input.display(),
-            output.display()
-        );
+        eprintln!("bundled {} -> {} ({bytes} bytes)", input.display(), output.display());
         Ok(())
     }
 }
@@ -50,11 +46,7 @@ fn default_output_path(input: &Path) -> Result<PathBuf> {
         .no_deps()
         .exec()
         .context("failed to run `cargo metadata`; is the solution inside a Cargo workspace?")?;
-    Ok(metadata
-        .workspace_root
-        .join("crates/bundled/src/bin")
-        .into_std_path_buf()
-        .join(filename))
+    Ok(metadata.workspace_root.join("crates/bundled/src/bin").into_std_path_buf().join(filename))
 }
 
 #[cfg(test)]
@@ -66,14 +58,8 @@ mod tests {
     fn places_output_in_the_bundled_crate() {
         let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let input = manifest_dir.join("../solutions/src/chicken_jockey.rs");
-        let bundled_dir = manifest_dir
-            .join("../bundled/src/bin")
-            .canonicalize()
-            .unwrap();
+        let bundled_dir = manifest_dir.join("../bundled/src/bin").canonicalize().unwrap();
 
-        assert_eq!(
-            default_output_path(&input).unwrap(),
-            bundled_dir.join("chicken_jockey.rs")
-        );
+        assert_eq!(default_output_path(&input).unwrap(), bundled_dir.join("chicken_jockey.rs"));
     }
 }

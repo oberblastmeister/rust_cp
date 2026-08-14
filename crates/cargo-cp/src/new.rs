@@ -71,15 +71,9 @@ fn create_solution(workspace_root: &Path, file: &str) -> Result<()> {
         .with_context(|| format!("failed to read `{}`", lib_path.display()))?;
     let updated_lib = add_module(&lib, module)?;
 
-    let mut output = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&output_path)
-        .with_context(|| {
-            format!(
-                "failed to create `{}`; does it already exist?",
-                output_path.display()
-            )
+    let mut output =
+        OpenOptions::new().write(true).create_new(true).open(&output_path).with_context(|| {
+            format!("failed to create `{}`; does it already exist?", output_path.display())
         })?;
     if let Err(error) = output.write_all(SOLUTION_TEMPLATE.as_bytes()) {
         drop(output);
@@ -93,10 +87,7 @@ fn create_solution(workspace_root: &Path, file: &str) -> Result<()> {
         return Err(error).with_context(|| format!("failed to update `{}`", lib_path.display()));
     }
 
-    eprintln!(
-        "created {} and added `pub mod {module};`",
-        output_path.display()
-    );
+    eprintln!("created {} and added `pub mod {module};`", output_path.display());
     Ok(())
 }
 
@@ -167,10 +158,7 @@ mod tests {
 
         create_solution(directory.path(), "beta").unwrap();
 
-        assert_eq!(
-            fs::read_to_string(solutions.join("beta.rs")).unwrap(),
-            SOLUTION_TEMPLATE
-        );
+        assert_eq!(fs::read_to_string(solutions.join("beta.rs")).unwrap(), SOLUTION_TEMPLATE);
         assert_eq!(
             fs::read_to_string(solutions.join("lib.rs")).unwrap(),
             "pub mod alpha;\npub mod beta;\n"
@@ -186,13 +174,7 @@ mod tests {
         fs::write(solutions.join("lib.rs"), "pub mod alpha;\n").unwrap();
 
         assert!(create_solution(directory.path(), "existing").is_err());
-        assert_eq!(
-            fs::read_to_string(solutions.join("existing.rs")).unwrap(),
-            "keep me\n"
-        );
-        assert_eq!(
-            fs::read_to_string(solutions.join("lib.rs")).unwrap(),
-            "pub mod alpha;\n"
-        );
+        assert_eq!(fs::read_to_string(solutions.join("existing.rs")).unwrap(), "keep me\n");
+        assert_eq!(fs::read_to_string(solutions.join("lib.rs")).unwrap(), "pub mod alpha;\n");
     }
 }

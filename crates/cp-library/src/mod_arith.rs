@@ -83,11 +83,7 @@ impl<const MOD: usize> Sub for ModUsize<MOD> {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        if self.v >= rhs.v {
-            Self::new(self.v - rhs.v)
-        } else {
-            Self::new(MOD - (rhs.v - self.v))
-        }
+        if self.v >= rhs.v { Self::new(self.v - rhs.v) } else { Self::new(MOD - (rhs.v - self.v)) }
     }
 }
 

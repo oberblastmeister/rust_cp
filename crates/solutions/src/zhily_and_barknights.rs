@@ -1,6 +1,7 @@
 use cp_library::{
-    Cin, Cout, End, frac::Frac, Itertools,
+    Cin, Cout, End, Itertools,
     frac::F,
+    frac::Frac,
     mod_arith::{self, FactTable},
 };
 

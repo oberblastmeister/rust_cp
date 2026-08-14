@@ -3,10 +3,7 @@ use std::iter;
 use cp_library::{Cin, Cout, End};
 
 pub fn solve(n: usize, m: usize, a: Vec<Vec<usize>>) -> (usize, String) {
-    let tot = a
-        .iter()
-        .map(|row| row.iter().copied().sum::<usize>())
-        .sum::<usize>();
+    let tot = a.iter().map(|row| row.iter().copied().sum::<usize>()).sum::<usize>();
     let opt = tot / 2;
     let mut curr = 0;
     let (last_i, last_j) = 'outer: {

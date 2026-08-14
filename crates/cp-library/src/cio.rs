@@ -32,21 +32,17 @@ impl Cin {
 
     /// Reads and parses the next whitespace-delimited value.
     pub fn read<T: FromStr>(&mut self) -> T {
-        self.read_opt()
-            .unwrap_or_else(|| panic!("expected another {} in input", type_name::<T>()))
+        self.read_opt().unwrap_or_else(|| panic!("expected another {} in input", type_name::<T>()))
     }
 
     /// Reads the next value, or returns `None` at the end of input.
     pub fn read_opt<T: FromStr>(&mut self) -> Option<T> {
-        self.reader
-            .read_token()
-            .expect("failed to read input")
-            .map(|token| {
-                let token = str::from_utf8(token).unwrap();
-                token
-                    .parse()
-                    .unwrap_or_else(|_| panic!("failed to parse `{token}` as {}", type_name::<T>()))
-            })
+        self.reader.read_token().expect("failed to read input").map(|token| {
+            let token = str::from_utf8(token).unwrap();
+            token
+                .parse()
+                .unwrap_or_else(|_| panic!("failed to parse `{token}` as {}", type_name::<T>()))
+        })
     }
 
     pub fn read_vec<T: FromStr>(&mut self, len: usize) -> Vec<T> {

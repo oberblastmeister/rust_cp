@@ -11,9 +11,7 @@ where
     G::T: Clone,
 {
     fn clone(&self) -> Self {
-        Self {
-            data: self.data.clone(),
-        }
+        Self { data: self.data.clone() }
     }
 }
 
@@ -22,9 +20,7 @@ where
     G::T: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PrefixSum")
-            .field("data", &self.data)
-            .finish()
+        f.debug_struct("PrefixSum").field("data", &self.data).finish()
     }
 }
 
@@ -40,9 +36,7 @@ where
         for i in 1..=n {
             values[i] = G::append(values[i - 1].clone(), values[i].clone());
         }
-        Self {
-            data: values.into_boxed_slice(),
-        }
+        Self { data: values.into_boxed_slice() }
     }
 
     pub fn get(&self, index: usize) -> G::T {
@@ -53,9 +47,9 @@ where
     pub fn query<R: RangeBounds<usize>>(&self, range: R) -> G::T {
         let start = match range.start_bound() {
             Bound::Included(&start) => start,
-            Bound::Excluded(&start) => start
-                .checked_add(1)
-                .expect("prefix sum range start overflow"),
+            Bound::Excluded(&start) => {
+                start.checked_add(1).expect("prefix sum range start overflow")
+            }
             Bound::Unbounded => 0,
         };
         let end = match range.end_bound() {

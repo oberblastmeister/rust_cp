@@ -15,6 +15,7 @@ pub struct Frac {
     pub denom: usize,
 }
 
+#[allow(non_snake_case)]
 pub fn F(x: usize) -> Frac {
     Frac::new(x, 1)
 }
@@ -35,10 +36,7 @@ impl Frac {
         }
 
         let divisor = gcd(num, denom);
-        Self {
-            num: num / divisor,
-            denom: denom / divisor,
-        }
+        Self { num: num / divisor, denom: denom / divisor }
     }
 
     pub fn reciprocal(self) -> Self {
@@ -183,10 +181,7 @@ impl Add for Frac {
         let rhs_scale = self.denom / common;
         let lhs_num = checked_mul(self.num, lhs_scale);
         let rhs_num = checked_mul(rhs.num, rhs_scale);
-        Self::new(
-            checked_add(lhs_num, rhs_num),
-            checked_mul(self.denom, lhs_scale),
-        )
+        Self::new(checked_add(lhs_num, rhs_num), checked_mul(self.denom, lhs_scale))
     }
 }
 
@@ -298,11 +293,9 @@ const fn gcd(mut left: usize, mut right: usize) -> usize {
 }
 
 fn checked_add(left: usize, right: usize) -> usize {
-    left.checked_add(right)
-        .expect("fraction arithmetic overflow")
+    left.checked_add(right).expect("fraction arithmetic overflow")
 }
 
 fn checked_mul(left: usize, right: usize) -> usize {
-    left.checked_mul(right)
-        .expect("fraction arithmetic overflow")
+    left.checked_mul(right).expect("fraction arithmetic overflow")
 }

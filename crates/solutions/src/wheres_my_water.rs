@@ -1,6 +1,6 @@
 use cp_library::{
-    Cin, Cout, End, Itertools, prefix_sum::PrefixSum, algebra::AddMonoid,
-    binary_search::virtual_partition_point,
+    Cin, Cout, End, Itertools, algebra::AddMonoid, binary_search::virtual_partition_point,
+    prefix_sum::PrefixSum,
 };
 
 #[derive(Debug)]
@@ -19,10 +19,7 @@ impl Info {
             heights[j] = heights[j].max(heights[j - 1]);
         }
         let heights_sum = heights.clone().into_iter().map(|x| x as isize).collect();
-        Info {
-            heights,
-            heights_sum,
-        }
+        Info { heights, heights_sum }
     }
 }
 
@@ -74,10 +71,7 @@ mod tests {
         assert_eq!(solve(10, vec![7, 5, 1, 3, 2, 5, 6, 8]), 43);
         assert_eq!(solve(1, vec![1]), 0);
         assert_eq!(solve(20, vec![5, 2, 1, 2, 1, 3, 6, 7, 1, 1]), 170);
-        assert_eq!(
-            solve(1000000000, vec![1, 420420420, 1, 420420420, 1]),
-            3738738738
-        );
+        assert_eq!(solve(1000000000, vec![1, 420420420, 1, 420420420, 1]), 3738738738);
         assert_eq!(solve(1000000000, vec![1]), 999999999)
     }
 }

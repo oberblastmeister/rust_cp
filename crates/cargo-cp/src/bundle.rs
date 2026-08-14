@@ -11,9 +11,8 @@ use syn::{Attribute, File, Item, ItemMod, ItemUse, Lit, Meta, PathSegment, UseTr
 
 /// Bundles a Rust solution and any referenced workspace library crates.
 pub fn bundle(input: &Path) -> Result<String> {
-    let input = input
-        .canonicalize()
-        .with_context(|| format!("failed to find `{}`", input.display()))?;
+    let input =
+        input.canonicalize().with_context(|| format!("failed to find `{}`", input.display()))?;
     let source = fs::read_to_string(&input)
         .with_context(|| format!("failed to read `{}`", input.display()))?;
     let mut solution = parse_and_expand(&input)?;
@@ -29,11 +28,7 @@ pub fn bundle(input: &Path) -> Result<String> {
     let libraries = workspace_libraries(&metadata);
     let mut embedded = Vec::new();
 
-    for crate_name in referenced
-        .names
-        .iter()
-        .filter(|name| libraries.contains_key(*name))
-    {
+    for crate_name in referenced.names.iter().filter(|name| libraries.contains_key(*name)) {
         let library_path = &libraries[crate_name];
         if library_path == &input {
             continue;
@@ -63,17 +58,11 @@ fn reject_external_dependencies(
     let package = workspace_packages
         .iter()
         .filter(|package| {
-            package
-                .manifest_path
-                .parent()
-                .is_some_and(|root| input.starts_with(root.as_std_path()))
+            package.manifest_path.parent().is_some_and(|root| input.starts_with(root.as_std_path()))
         })
         .max_by_key(|package| package.manifest_path.components().count())
         .with_context(|| {
-            format!(
-                "could not find the Cargo package containing `{}`",
-                input.display()
-            )
+            format!("could not find the Cargo package containing `{}`", input.display())
         })?;
 
     for dependency in &package.dependencies {
@@ -98,12 +87,7 @@ fn workspace_libraries(metadata: &Metadata) -> BTreeMap<String, PathBuf> {
         .iter()
         .flat_map(|package| package.targets.iter())
         .filter(|target| target.kind.contains(&TargetKind::Lib))
-        .map(|target| {
-            (
-                target.name.replace('-', "_"),
-                target.src_path.clone().into_std_path_buf(),
-            )
-        })
+        .map(|target| (target.name.replace('-', "_"), target.src_path.clone().into_std_path_buf()))
         .collect()
 }
 
@@ -133,10 +117,7 @@ fn expand_items(items: &mut [Item], module_dir: &Path, source_path: &Path) -> Re
 
         let module_path = resolve_module(module, module_dir, source_path)?;
         let nested = parse_and_expand(&module_path)?;
-        let attributes = module
-            .attrs
-            .iter()
-            .filter(|attribute| !attribute.path().is_ident("path"));
+        let attributes = module.attrs.iter().filter(|attribute| !attribute.path().is_ident("path"));
         let visibility = &module.vis;
         let identifier = &module.ident;
         let inner_attributes = &nested.attrs;
@@ -154,10 +135,7 @@ fn expand_items(items: &mut [Item], module_dir: &Path, source_path: &Path) -> Re
 
 fn resolve_module(module: &ItemMod, module_dir: &Path, source_path: &Path) -> Result<PathBuf> {
     if let Some(relative) = path_attribute(&module.attrs)? {
-        return Ok(source_path
-            .parent()
-            .context("module source has no parent")?
-            .join(relative));
+        return Ok(source_path.parent().context("module source has no parent")?.join(relative));
     }
 
     let name = module.ident.to_string();
@@ -227,11 +205,7 @@ impl CrateReferences {
                 let mut leaves = Vec::new();
                 flatten_use_tree(&item.tree, &mut Vec::new(), &mut leaves);
                 for leaf in leaves {
-                    if leaf
-                        .path
-                        .first()
-                        .is_some_and(|root| root == self.crate_name)
-                    {
+                    if leaf.path.first().is_some_and(|root| root == self.crate_name) {
                         if leaf.alias.is_some() && leaf.path.len() == 1 {
                             self.references.whole_crate = true;
                         } else if let Some(member) = leaf.path.get(1) {
@@ -245,11 +219,8 @@ impl CrateReferences {
             }
 
             fn visit_path(&mut self, path: &'ast syn::Path) {
-                let segments: Vec<_> = path
-                    .segments
-                    .iter()
-                    .map(|segment| segment.ident.to_string())
-                    .collect();
+                let segments: Vec<_> =
+                    path.segments.iter().map(|segment| segment.ident.to_string()).collect();
                 self.record_path(&segments);
                 visit::visit_path(self, path);
             }
@@ -274,10 +245,7 @@ impl CrateReferences {
             }
         }
 
-        let mut collector = Collector {
-            crate_name,
-            references: Self::default(),
-        };
+        let mut collector = Collector { crate_name, references: Self::default() };
         collector.visit_file(file);
         collector.references
     }
@@ -300,31 +268,19 @@ fn flatten_use_tree(tree: &UseTree, prefix: &mut Vec<String>, leaves: &mut Vec<U
         UseTree::Name(name) => {
             let mut path = prefix.clone();
             path.push(name.ident.to_string());
-            leaves.push(UseLeaf {
-                path,
-                alias: None,
-                glob: false,
-            });
+            leaves.push(UseLeaf { path, alias: None, glob: false });
         }
         UseTree::Rename(rename) => {
             let mut path = prefix.clone();
             path.push(rename.ident.to_string());
-            leaves.push(UseLeaf {
-                path,
-                alias: Some(rename.rename.to_string()),
-                glob: false,
-            });
+            leaves.push(UseLeaf { path, alias: Some(rename.rename.to_string()), glob: false });
         }
         UseTree::Group(group) => {
             for item in &group.items {
                 flatten_use_tree(item, prefix, leaves);
             }
         }
-        UseTree::Glob(_) => leaves.push(UseLeaf {
-            path: prefix.clone(),
-            alias: None,
-            glob: true,
-        }),
+        UseTree::Glob(_) => leaves.push(UseLeaf { path: prefix.clone(), alias: None, glob: true }),
     }
 }
 
@@ -462,13 +418,7 @@ fn retain_referenced_library_modules(library: &mut File, references: &CrateRefer
     let mut required_members = references.members.clone();
     let mut selected = BTreeSet::new();
     let mut pending = VecDeque::new();
-    resolve_members(
-        &required_members,
-        &modules,
-        &exports,
-        &mut selected,
-        &mut pending,
-    );
+    resolve_members(&required_members, &modules, &exports, &mut selected, &mut pending);
 
     while let Some(module_name) = pending.pop_front() {
         let Some(Item::Mod(module)) = library
@@ -481,13 +431,7 @@ fn retain_referenced_library_modules(library: &mut File, references: &CrateRefer
         let mut dependencies = RootDependencies::default();
         dependencies.visit_item_mod(module);
         required_members.extend(dependencies.root_members);
-        resolve_members(
-            &required_members,
-            &modules,
-            &exports,
-            &mut selected,
-            &mut pending,
-        );
+        resolve_members(&required_members, &modules, &exports, &mut selected, &mut pending);
     }
 
     library.items.retain_mut(|item| match item {
@@ -514,10 +458,8 @@ fn root_exports(items: &[Item], modules: &BTreeSet<String>) -> BTreeMap<String, 
             if leaf.glob {
                 continue;
             }
-            let exported = leaf
-                .alias
-                .or_else(|| leaf.path.last().cloned())
-                .unwrap_or_else(|| module.clone());
+            let exported =
+                leaf.alias.or_else(|| leaf.path.last().cloned()).unwrap_or_else(|| module.clone());
             exports.entry(exported).or_default().insert(module);
         }
     }
@@ -606,11 +548,8 @@ impl<'ast> Visit<'ast> for RootDependencies {
     }
 
     fn visit_path(&mut self, path: &'ast syn::Path) {
-        let segments: Vec<_> = path
-            .segments
-            .iter()
-            .map(|segment| segment.ident.to_string())
-            .collect();
+        let segments: Vec<_> =
+            path.segments.iter().map(|segment| segment.ident.to_string()).collect();
         self.record_segments(&segments);
         visit::visit_path(self, path);
     }
@@ -735,9 +674,7 @@ struct CratePathRewriter {
 
 impl CratePathRewriter {
     fn new(crate_name: &str) -> Self {
-        Self {
-            crate_identifier: format_ident!("{crate_name}"),
-        }
+        Self { crate_identifier: format_ident!("{crate_name}") }
     }
 
     fn rewrite_use_tree(&self, tree: &mut UseTree) {
@@ -768,13 +705,8 @@ impl VisitMut for CratePathRewriter {
     }
 
     fn visit_path_mut(&mut self, path: &mut syn::Path) {
-        if path
-            .segments
-            .first()
-            .is_some_and(|segment| segment.ident == "crate")
-        {
-            path.segments
-                .insert(1, PathSegment::from(self.crate_identifier.clone()));
+        if path.segments.first().is_some_and(|segment| segment.ident == "crate") {
+            path.segments.insert(1, PathSegment::from(self.crate_identifier.clone()));
         }
         visit_mut::visit_path_mut(self, path);
     }

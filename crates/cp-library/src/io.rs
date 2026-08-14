@@ -168,10 +168,7 @@ impl Writer {
             return Ok(());
         }
 
-        let mut slices = [
-            IoSlice::new(&self.buffer[..self.position]),
-            IoSlice::new(input),
-        ];
+        let mut slices = [IoSlice::new(&self.buffer[..self.position]), IoSlice::new(input)];
         write_all_vectored(&mut *self.writer, &mut slices)?;
         self.position = 0;
         Ok(())
@@ -184,8 +181,7 @@ impl Writer {
     }
 
     pub fn write(&mut self, input: &[u8]) -> &mut Self {
-        self.write_buffered(input)
-            .expect("failed to write buffered output");
+        self.write_buffered(input).expect("failed to write buffered output");
         self
     }
 }

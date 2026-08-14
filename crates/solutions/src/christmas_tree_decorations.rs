@@ -1,6 +1,6 @@
 use std::iter;
 
-use cp_library::{Cin, Cout, End, mod_arith::ModUsize, mod_arith::FactTable};
+use cp_library::{Cin, Cout, End, mod_arith::FactTable, mod_arith::ModUsize};
 
 const MOD: usize = 998244353;
 type musize = ModUsize<MOD>;
@@ -10,11 +10,7 @@ pub fn M(x: usize) -> musize {
 
 pub fn solve(n: usize, a: Vec<usize>) -> musize {
     let &largest = a[1..].iter().max().unwrap();
-    let necessary = a[1..]
-        .iter()
-        .copied()
-        .map(|x| (largest - x).saturating_sub(1))
-        .sum::<usize>();
+    let necessary = a[1..].iter().copied().map(|x| (largest - x).saturating_sub(1)).sum::<usize>();
     if necessary > a[0] {
         return M(0);
     }

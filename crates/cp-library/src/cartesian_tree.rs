@@ -37,12 +37,7 @@ where
             .into_iter()
             .cloned()
             .enumerate()
-            .map(|(i, weight)| Node {
-                index: i,
-                weight,
-                left: None,
-                right: None,
-            })
+            .map(|(i, weight)| Node { index: i, weight, left: None, right: None })
             .collect_vec()
             .into_boxed_slice();
         let mut monotonic_stack: Vec<usize> = Vec::new();
@@ -60,10 +55,7 @@ where
             }
             monotonic_stack.push(node);
         }
-        CartesianTree {
-            nodes,
-            root: monotonic_stack[0],
-        }
+        CartesianTree { nodes, root: monotonic_stack[0] }
     }
 
     pub fn root(&self) -> usize {

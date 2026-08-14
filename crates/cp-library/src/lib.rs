@@ -1,4 +1,3 @@
-pub mod multiset;
 pub mod algebra;
 pub mod binary_search;
 pub mod cartesian_tree;
@@ -6,11 +5,14 @@ pub mod cio;
 pub mod driver;
 pub mod dsu;
 pub mod frac;
+pub mod grid;
 pub mod io;
 pub mod itertools;
 pub mod mod_arith;
+pub mod multiset;
 pub mod prefix_sum;
 pub mod segtree;
+pub mod sparse_table;
 
 pub use cio::{Cin, Cout};
 pub use driver::{TestKind, driver, test_driver};
@@ -28,15 +30,13 @@ impl<T> std::ops::Index<End> for Vec<T> {
     type Output = T;
 
     fn index(&self, _: End) -> &Self::Output {
-        self.last()
-            .expect("cannot index the end of an empty vector")
+        self.last().expect("cannot index the end of an empty vector")
     }
 }
 
 impl<T> std::ops::IndexMut<End> for Vec<T> {
     fn index_mut(&mut self, _: End) -> &mut Self::Output {
-        self.last_mut()
-            .expect("cannot index the end of an empty vector")
+        self.last_mut().expect("cannot index the end of an empty vector")
     }
 }
 
@@ -50,8 +50,7 @@ impl<T> std::ops::Index<End> for [T] {
 
 impl<T> std::ops::IndexMut<End> for [T] {
     fn index_mut(&mut self, _: End) -> &mut Self::Output {
-        self.last_mut()
-            .expect("cannot index the end of an empty slice")
+        self.last_mut().expect("cannot index the end of an empty slice")
     }
 }
 

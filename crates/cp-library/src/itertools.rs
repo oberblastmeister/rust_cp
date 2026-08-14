@@ -6,8 +6,8 @@
 //! See `third-party/itertools-LICENSE-MIT` for the upstream license.
 
 use std::cmp::Ordering;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fmt::{Display, Write as _};
 use std::hash::Hash;
 use std::iter::FusedIterator;
@@ -64,10 +64,7 @@ pub trait Itertools: Iterator + Sized {
     where
         Self::Item: Eq + Hash + Clone,
     {
-        Unique {
-            iterator: self,
-            used: HashMap::new(),
-        }
+        Unique { iterator: self, used: HashMap::new() }
     }
 
     fn unique_by<V, F>(self, key: F) -> UniqueBy<Self, V, F>
@@ -75,11 +72,7 @@ pub trait Itertools: Iterator + Sized {
         V: Eq + Hash,
         F: FnMut(&Self::Item) -> V,
     {
-        UniqueBy {
-            iterator: self,
-            used: HashMap::new(),
-            key,
-        }
+        UniqueBy { iterator: self, used: HashMap::new(), key }
     }
 
     fn counts(self) -> HashMap<Self::Item, usize>
@@ -182,11 +175,7 @@ where
     type Item = I::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Self {
-            iterator,
-            used,
-            key,
-        } = self;
+        let Self { iterator, used, key } = self;
         iterator.find(|value| used.insert(key(value), ()).is_none())
     }
 
@@ -224,12 +213,7 @@ where
     I::Item: Clone,
 {
     fn new(left: I, right: J) -> Self {
-        Self {
-            left,
-            current_left: None,
-            right: right.clone(),
-            original_right: right,
-        }
+        Self { left, current_left: None, right: right.clone(), original_right: right }
     }
 }
 
@@ -261,9 +245,8 @@ where
         let (left_lower, left_upper) = self.left.size_hint();
         let (right_lower, right_upper) = self.original_right.size_hint();
         let mut lower = left_lower.saturating_mul(right_lower);
-        let mut upper = left_upper
-            .zip(right_upper)
-            .and_then(|(left, right)| left.checked_mul(right));
+        let mut upper =
+            left_upper.zip(right_upper).and_then(|(left, right)| left.checked_mul(right));
         if matches!(self.current_left, Some(Some(_))) {
             let (remaining_lower, remaining_upper) = self.right.size_hint();
             lower = lower.saturating_add(remaining_lower);

@@ -50,11 +50,7 @@ fn parse_env_args() -> Cli {
 fn parse_args(args: &[String]) -> Result<Cli, EarlyExit> {
     // Cargo invokes installed external subcommands as `cargo-cp cp ...`, while
     // the workspace alias and direct binary invocation omit the `cp` prefix.
-    let args = if args.first().map(String::as_str) == Some("cp") {
-        &args[1..]
-    } else {
-        args
-    };
+    let args = if args.first().map(String::as_str) == Some("cp") { &args[1..] } else { args };
 
     // Keep the previous no-argument and `help` behavior while letting argh
     // generate and format the actual help text.
@@ -129,10 +125,7 @@ mod tests {
         };
 
         assert_eq!(command.target, "parser");
-        assert_eq!(
-            command.input,
-            Some(PathBuf::from("crates/fuzz/artifacts/parser/crash"))
-        );
+        assert_eq!(command.input, Some(PathBuf::from("crates/fuzz/artifacts/parser/crash")));
     }
 
     #[test]
@@ -155,9 +148,6 @@ mod tests {
         };
 
         assert_eq!(command.target, "parser");
-        assert_eq!(
-            command.input,
-            PathBuf::from("crates/fuzz/artifacts/parser/crash")
-        );
+        assert_eq!(command.input, PathBuf::from("crates/fuzz/artifacts/parser/crash"));
     }
 }

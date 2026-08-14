@@ -49,23 +49,16 @@ fn fuzz_directory(current_dir: &Path) -> Result<PathBuf> {
         .no_deps()
         .exec()
         .context("failed to run `cargo metadata`; are you inside the workspace?")?;
-    Ok(metadata
-        .workspace_root
-        .join("crates/fuzz")
-        .into_std_path_buf())
+    Ok(metadata.workspace_root.join("crates/fuzz").into_std_path_buf())
 }
 
 fn resolve_input(input: PathBuf) -> Result<PathBuf> {
     let input = if input.is_absolute() {
         input
     } else {
-        env::current_dir()
-            .context("failed to determine the current directory")?
-            .join(input)
+        env::current_dir().context("failed to determine the current directory")?.join(input)
     };
-    input
-        .canonicalize()
-        .with_context(|| format!("failed to find fuzz input `{}`", input.display()))
+    input.canonicalize().with_context(|| format!("failed to find fuzz input `{}`", input.display()))
 }
 
 fn cargo_tmin_command(target: &str, input: &Path, fuzz_dir: &Path) -> Command {
@@ -87,11 +80,8 @@ mod tests {
 
     #[test]
     fn minimizes_with_nightly_and_the_relocated_fuzz_directory() {
-        let command = cargo_tmin_command(
-            "parser",
-            Path::new("/tmp/crash-input"),
-            Path::new("crates/fuzz"),
-        );
+        let command =
+            cargo_tmin_command("parser", Path::new("/tmp/crash-input"), Path::new("crates/fuzz"));
 
         assert_eq!(command.get_program(), OsStr::new("cargo"));
         assert_eq!(
