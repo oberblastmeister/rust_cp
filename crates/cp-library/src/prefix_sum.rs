@@ -1,21 +1,22 @@
 use std::ops::{Bound, RangeBounds};
 
-use crate::algebra::Group;
+use crate::algebra::{DefaultMonoid, Monus, Num};
 
-pub struct PrefixSum<G: Group> {
+pub struct PrefixSum<G: Monus> {
     data: Box<[G::T]>,
+    algebra: G,
 }
 
-impl<G: Group> Clone for PrefixSum<G>
+impl<G: Monus + Clone> Clone for PrefixSum<G>
 where
     G::T: Clone,
 {
     fn clone(&self) -> Self {
-        Self { data: self.data.clone() }
+        Self { data: self.data.clone(), algebra: self.algebra.clone() }
     }
 }
 
-impl<G: Group> std::fmt::Debug for PrefixSum<G>
+impl<G: Monus> std::fmt::Debug for PrefixSum<G>
 where
     G::T: std::fmt::Debug,
 {
@@ -24,19 +25,23 @@ where
     }
 }
 
-impl<G: Group> PrefixSum<G>
+impl<G: Monus> PrefixSum<G>
 where
     G::T: Clone,
 {
-    pub fn from_vec(mut values: Vec<G::T>) -> Self {
+    pub fn from_vec_with(mut values: Vec<G::T>, algebra: G) -> Self {
         let n = values.len();
-        values.resize_with(n + 1, || G::EMPTY);
+        values.resize_with(n + 1, || algebra.empty());
         values.rotate_right(1);
         values.shrink_to_fit();
         for i in 1..=n {
-            values[i] = G::append(values[i - 1].clone(), values[i].clone());
+            values[i] = algebra.append(values[i - 1].clone(), values[i].clone());
         }
-        Self { data: values.into_boxed_slice() }
+        Self { data: values.into_boxed_slice(), algebra }
+    }
+
+    pub fn from_iter_with<I: IntoIterator<Item = G::T>>(iter: I, algebra: G) -> Self {
+        Self::from_vec_with(iter.into_iter().collect(), algebra)
     }
 
     pub fn get(&self, index: usize) -> G::T {
@@ -58,21 +63,34 @@ where
             Bound::Unbounded => self.data.len() - 1,
         };
         if start > end {
-            return G::EMPTY;
+            return self.algebra.empty();
         }
         self.query_bounds(start, end)
     }
 
     pub fn query_bounds(&self, start: usize, end: usize) -> G::T {
-        G::append(self.data[end].clone(), G::inverse(self.data[start].clone()))
+        self.algebra.monus(self.data[end].clone(), self.data[start].clone())
     }
 }
 
-impl<G: Group> FromIterator<G::T> for PrefixSum<G>
+impl<T> PrefixSum<DefaultMonoid<T>>
 where
-    G::T: Clone,
+    T: Num + Clone,
 {
-    fn from_iter<I: IntoIterator<Item = G::T>>(iter: I) -> Self {
-        Self::from_vec(iter.into_iter().collect())
+    pub fn from_vec(values: Vec<T>) -> Self {
+        Self::from_vec_with(values, DefaultMonoid::new())
+    }
+
+    pub fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        Self::from_iter_with(iter, DefaultMonoid::new())
+    }
+}
+
+impl<T> FromIterator<T> for PrefixSum<DefaultMonoid<T>>
+where
+    T: Num + Clone,
+{
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        Self::from_iter_with(iter, DefaultMonoid::new())
     }
 }

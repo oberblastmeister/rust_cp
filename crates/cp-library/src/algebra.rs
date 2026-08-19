@@ -1,7 +1,18 @@
 use std::{
+    cmp,
     marker::PhantomData,
     ops::{Add, Div, Mul, Neg, Rem, Sub},
 };
+
+pub trait Ordering {
+    type T;
+
+    fn compare(&self, x: Self::T, y: Self::T) -> cmp::Ordering;
+}
+
+pub trait AddInv {
+    fn add_inv(self) -> Self;
+}
 
 pub trait MulInv {
     fn mul_inv(self) -> Self;
@@ -10,12 +21,16 @@ pub trait MulInv {
 pub trait Monoid {
     type T;
 
-    const EMPTY: Self::T;
-    fn append(x: Self::T, y: Self::T) -> Self::T;
+    fn empty(&self) -> Self::T;
+    fn append(&self, x: Self::T, y: Self::T) -> Self::T;
+}
+
+pub trait Monus: Monoid {
+    fn monus(&self, x: Self::T, y: Self::T) -> Self::T;
 }
 
 pub trait Group: Monoid {
-    fn inverse(x: Self::T) -> Self::T;
+    fn inverse(&self, x: Self::T) -> Self::T;
 }
 
 pub trait NumOps<Rhs = Self, Output = Self>:
@@ -83,36 +98,139 @@ pub trait Num: PartialEq + Zero + One + NumOps {}
 
 impl<T> Num for T where T: PartialEq + Zero + One + NumOps {}
 
-pub struct AddMonoid<T>(PhantomData<T>);
+#[derive(Clone, Copy)]
+pub struct DefaultMonoid<T>(PhantomData<T>);
 
-impl<T: Num> Monoid for AddMonoid<T> {
+impl<T> Default for DefaultMonoid<T> {
+    fn default() -> Self {
+        DefaultMonoid::new()
+    }
+}
+
+impl<T> DefaultMonoid<T> {
+    pub fn new() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<T: Num> Monoid for DefaultMonoid<T> {
     type T = T;
-    const EMPTY: T = T::ZERO;
 
-    fn append(x: T, y: T) -> T {
+    fn empty(&self) -> Self::T {
+        T::ZERO
+    }
+
+    fn append(&self, x: T, y: T) -> T {
         x + y
     }
 }
 
-impl<T: Num + Neg<Output = T>> Group for AddMonoid<T> {
-    fn inverse(x: Self::T) -> Self::T {
-        -x
+impl<T: Num> Monus for DefaultMonoid<T> {
+    fn monus(&self, x: Self::T, y: Self::T) -> Self::T {
+        x - y
     }
 }
 
+impl<T: Num + Neg<Output = T>> AddInv for T {
+    fn add_inv(self) -> T {
+        -self
+    }
+}
+
+#[derive(Clone, Copy)]
 pub struct MulMonoid<T>(PhantomData<T>);
+
+impl<T> MulMonoid<T> {
+    pub fn new() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<T> Default for MulMonoid<T> {
+    fn default() -> Self {
+        MulMonoid::new()
+    }
+}
 
 impl<T: Num> Monoid for MulMonoid<T> {
     type T = T;
-    const EMPTY: T = T::ONE;
 
-    fn append(x: T, y: T) -> T {
+    fn empty(&self) -> Self::T {
+        T::ONE
+    }
+
+    fn append(&self, x: T, y: T) -> T {
         x * y
     }
 }
 
+impl<T: Num + AddInv> Group for DefaultMonoid<T> {
+    fn inverse(&self, x: Self::T) -> Self::T {
+        x.add_inv()
+    }
+}
+
 impl<T: Num + MulInv> Group for MulMonoid<T> {
-    fn inverse(x: Self::T) -> Self::T {
+    fn inverse(&self, x: Self::T) -> Self::T {
         x.mul_inv()
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct DefaultOrdering<T>(PhantomData<T>);
+
+impl<T> Default for DefaultOrdering<T> {
+    fn default() -> Self {
+        DefaultOrdering::new()
+    }
+}
+
+impl<T> DefaultOrdering<T> {
+    pub fn new() -> Self {
+        DefaultOrdering(PhantomData)
+    }
+}
+
+impl<T: Ord> Ordering for DefaultOrdering<T> {
+    type T = T;
+
+    fn compare(&self, x: Self::T, y: Self::T) -> cmp::Ordering {
+        x.cmp(&y)
+    }
+}
+
+#[derive(Clone, Copy, Default)]
+pub struct ReversedOrdering<O>(O);
+
+impl<O> ReversedOrdering<O> {
+    pub fn new(o: O) -> Self {
+        Self(o)
+    }
+}
+
+impl<O: Ordering> Ordering for ReversedOrdering<O> {
+    type T = O::T;
+
+    fn compare(&self, x: Self::T, y: Self::T) -> cmp::Ordering {
+        self.0.compare(x, y).reverse()
+    }
+}
+
+pub struct FnOrdering<T, F>(PhantomData<T>, F);
+
+impl<T, F> FnOrdering<T, F> {
+    pub fn new(f: F) -> Self {
+        FnOrdering(PhantomData, f)
+    }
+}
+
+impl<T, F> Ordering for FnOrdering<T, F>
+where
+    F: Fn(T, T) -> cmp::Ordering,
+{
+    type T = T;
+
+    fn compare(&self, x: Self::T, y: Self::T) -> cmp::Ordering {
+        (self.1)(x, y)
     }
 }

@@ -1,12 +1,15 @@
 pub mod another_problem_about_beautiful_pairs;
+pub mod array_replacement;
 pub mod billion_players_game;
 pub mod chicken_jockey;
 pub mod christmas_tree_decorations;
 pub mod cirno_and_the_number_easy;
 pub mod good_schedule;
+pub mod me_when_median_problem;
 pub mod one_night_at_freddys;
 pub mod permutation_cuts;
 pub mod queries_for_the_array;
+pub mod simons_and_beating_peaks;
 pub mod sorting_by_multiplication;
 pub mod table_cut;
 pub mod two_digit_strings;

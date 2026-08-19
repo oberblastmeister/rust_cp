@@ -1,12 +1,12 @@
 use cp_library::{
-    Cin, Cout, End, Itertools, algebra::AddMonoid, binary_search::virtual_partition_point,
+    Cin, Cout, End, Itertools, algebra::DefaultMonoid, binary_search::virtual_partition_point,
     prefix_sum::PrefixSum,
 };
 
 #[derive(Debug)]
 struct Info {
     heights: Vec<usize>,
-    heights_sum: PrefixSum<AddMonoid<isize>>,
+    heights_sum: PrefixSum<DefaultMonoid<isize>>,
 }
 
 impl Info {

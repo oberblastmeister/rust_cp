@@ -1,4 +1,4 @@
-use cp_library::{algebra::AddMonoid, prefix_sum::PrefixSum, prelude::*};
+use cp_library::{algebra::DefaultMonoid, prefix_sum::PrefixSum, prelude::*};
 
 fn solve(l: isize, r: isize, mut a: Vec<isize>) -> usize {
     a.sort_unstable();
@@ -33,7 +33,7 @@ fn solve(l: isize, r: isize, mut a: Vec<isize>) -> usize {
         }
     }
     mid.shrink_to_fit();
-    let mid_sum: PrefixSum<AddMonoid<isize>> = PrefixSum::from_vec(mid.clone());
+    let mid_sum: PrefixSum<DefaultMonoid<isize>> = PrefixSum::from_vec(mid.clone());
     dbg!(ls, rs, &mid, &mid_sum);
     if mid.len() % 2 == 1 {
         let mut res = 0;

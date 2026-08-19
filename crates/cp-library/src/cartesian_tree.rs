@@ -1,6 +1,9 @@
-use crate::Itertools;
+use crate::{
+    Itertools,
+    algebra::{DefaultOrdering, Ordering},
+};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Node<W> {
     pub index: usize,
     pub weight: W,
@@ -8,43 +11,47 @@ pub struct Node<W> {
     pub right: Option<usize>,
 }
 
-pub struct CartesianTree<W> {
-    nodes: Box<[Node<W>]>,
+pub struct CartesianTree<O: Ordering> {
+    nodes: Box<[Node<O::T>]>,
     root: usize,
 }
 
-impl<W> std::ops::Index<usize> for CartesianTree<W> {
-    type Output = Node<W>;
+impl<O: Ordering> std::ops::Index<usize> for CartesianTree<O> {
+    type Output = Node<O::T>;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.nodes[index]
     }
 }
 
-impl<W> std::ops::IndexMut<usize> for CartesianTree<W> {
+impl<O: Ordering> std::ops::IndexMut<usize> for CartesianTree<O> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.nodes[index]
     }
 }
 
-impl<W> CartesianTree<W>
+impl<O: Ordering> CartesianTree<O>
 where
-    W: Ord + Clone,
+    O::T: Clone,
 {
-    pub fn new(values: &[W]) -> CartesianTree<W> {
-        assert!(!values.is_empty());
+    pub fn len(&self) -> usize {
+        self.nodes.len()
+    }
+
+    pub fn from_iter_with<I: IntoIterator<Item = O::T>>(values: I, algebra: O) -> CartesianTree<O> {
         let mut nodes = values
             .into_iter()
-            .cloned()
             .enumerate()
-            .map(|(i, weight)| Node { index: i, weight, left: None, right: None })
+            .map(|(index, weight)| Node { index, weight, left: None, right: None })
             .collect_vec()
             .into_boxed_slice();
+        assert!(!nodes.is_empty(), "cannot construct a Cartesian tree from an empty iterator");
+
         let mut monotonic_stack: Vec<usize> = Vec::new();
         for node in 0..nodes.len() {
             let mut left = None;
             while let Some(&last) = monotonic_stack.last() {
-                if nodes[last].weight <= nodes[node].weight {
+                if algebra.compare(nodes[last].weight.clone(), nodes[node].weight.clone()).is_le() {
                     break;
                 }
                 left = monotonic_stack.pop();
@@ -60,5 +67,14 @@ where
 
     pub fn root(&self) -> usize {
         self.root
+    }
+}
+
+impl<T> FromIterator<T> for CartesianTree<DefaultOrdering<T>>
+where
+    T: Ord + Clone,
+{
+    fn from_iter<I: IntoIterator<Item = T>>(values: I) -> Self {
+        Self::from_iter_with(values, DefaultOrdering::new())
     }
 }
