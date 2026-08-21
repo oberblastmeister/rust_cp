@@ -13,6 +13,7 @@ pub mod multiset;
 pub mod prefix_sum;
 pub mod segtree;
 pub mod sparse_table;
+pub mod recursive_function;
 
 pub use cio::{Cin, Cout};
 pub use driver::{TestKind, driver, test_driver};

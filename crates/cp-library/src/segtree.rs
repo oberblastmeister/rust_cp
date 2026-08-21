@@ -7,6 +7,8 @@ pub struct SegTree<M: Monoid> {
     algebra: M,
 }
 
+pub type DefaultSegTree<T> = SegTree<DefaultMonoid<T>>;
+
 impl<M: Monoid + Clone> Clone for SegTree<M>
 where
     M::T: Clone,
@@ -149,7 +151,7 @@ impl<M: Monoid> std::ops::Index<usize> for SegTree<M> {
     }
 }
 
-impl<T> FromIterator<T> for SegTree<DefaultMonoid<T>>
+impl<T> FromIterator<T> for DefaultSegTree<T>
 where
     T: Num + Clone,
 {

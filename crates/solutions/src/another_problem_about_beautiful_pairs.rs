@@ -1,60 +1,76 @@
-use std::collections::HashSet;
-
-use cp_library::{Cin, Cout, End};
+use cp_library::prelude::*;
 
 pub fn solve(a: Vec<usize>) -> usize {
-    dbg!(&a);
     let n = a.len();
+    let sqn = n.isqrt();
     let mut res = 0;
-    for j in 1..n {
-        dbg!(j);
-        let mut factors = HashSet::new();
-        for d in 1..=(j.isqrt()) {
-            factors.insert((d, j / d));
-            factors.insert((j / d, d));
-        }
-        dbg!(&factors);
-        for (d1, d2) in factors {
-            if d2 != a[j] {
+    for i in 0..n {
+        for aj in 1..=sqn {
+            let lhs = a[i] * aj;
+            let j = lhs + i;
+            if j >= n {
+                break;
+            }
+            if a[j] != aj {
                 continue;
             }
-            let ai = d1;
-            dbg!(ai);
-            if ai * a[j] > j {
-                continue;
-            }
-            let i = j - ai * a[j];
-            if a[i] != ai {
-                dbg!("wrong", (i, j));
-                continue;
-            }
-            dbg!("yes", (i, j));
-            assert!((j - i) == a[j] * a[i]);
             res += 1;
+        }
+        if a[i] > sqn {
+            let j = i;
+            let aj = a[i];
+            for ai in 1..=sqn {
+                let lhs = ai * aj;
+                if lhs > j {
+                    break;
+                }
+                let i = j - lhs;
+                if a[i] != ai {
+                    continue;
+                }
+                res += 1;
+            }
         }
     }
     res
 }
 
-pub fn main() {
-    let mut cin = Cin::new();
-    let mut cout = Cout::new();
-    let t = cin.read();
-    for _ in 0..t {
-        let n: usize = cin.read();
-        let a: Vec<usize> = cin.read_vec(n);
-        let res = solve(a);
-        cout.println(res);
-    }
+pub fn run(_: usize, cin: &mut Cin, cout: &mut Cout) {
+    let n: usize = cin.read();
+    let a: Vec<usize> = cin.read_vec(n);
+    let res = solve(a);
+    cout.println(res);
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+pub fn main() {
+    driver(run, TestKind::Many)
+}
 
-//     #[test]
-//     fn smoke() {
-//         assert_eq!(solve(vec![1, 1, 2, 100, 4]), 3);
-//         assert_eq!(solve(vec![2, 2, 1, 1, 2, 2]), 7);
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use cp_library::test_driver;
+    use insta::assert_snapshot;
+
+    use super::*;
+
+    #[test]
+    fn smoke() {
+        assert_snapshot!(test_driver(run, TestKind::Many, "
+            4
+            5
+            1 1 2 100 4
+            6
+            2 2 1 1 2 2
+            10
+            1 1 2 3 4 1 1 7 3 9
+            2
+            1000000000 1000000000
+"),
+        @"
+        3
+        7
+        10
+        0
+        ")
+    }
+}

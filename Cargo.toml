@@ -3,7 +3,7 @@ members = [
     "crates/cargo-cp",
     "crates/cp-library",
     "crates/fuzz",
-    "crates/solutions",
+    "crates/solutions"
 ]
 default-members = ["crates/solutions"]
 resolver = "3"
